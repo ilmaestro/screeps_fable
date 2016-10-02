@@ -1,0 +1,17 @@
+{
+    "module": "amd",
+    "outDir": "out",
+    "sourceMaps": true,
+    "projFile": "index.fsx",
+    "scripts": {
+
+    },
+    "targets": {
+        "production": {
+            "sourceMaps": false
+        }
+    },
+    "engines": {
+        "fable": "0.5.2"
+    }
+}
