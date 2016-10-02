@@ -44,8 +44,9 @@ let transferEnergy (creep: Creep) =
         | _ -> Fail
     | None -> Fail
 
-let run() =
-    match unbox Globals.Game.creeps?bork1 with
+let run(name: string) =
+
+    match unbox Globals.Game.creeps?(name) with
     | Some c -> 
         let creep = c :> Creep
         let state = creepState creep

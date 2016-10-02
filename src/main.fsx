@@ -9,6 +9,9 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 
+[<Emit("Object.keys($0)")>]
+let getKeys obj: string list = jsNative
+
 let loop() =
-    SpawnManager.run()
-    Harvest.run()
+    getKeys Globals.Game.spawns |> List.iter SpawnManager.run
+    getKeys Globals.Game.creeps |> List.iter Harvest.run
