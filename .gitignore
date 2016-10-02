@@ -1,3 +1,9 @@
 node_modules/
 out/
 .vscode/
+.paket/
+bin/
+packages/
+obj/
+typings/
+paket.lock

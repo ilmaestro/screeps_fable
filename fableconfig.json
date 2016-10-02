@@ -1,11 +1,8 @@
 {
-    "module": "es2015",
+    "module": "commonjs",
     "outDir": "out",
     "sourceMaps": false,
-    "projFile": "src/main.fsx",
-    "scripts": {
-        "prebuild": "npm install"
-    },
+    "projFile": "./Screeps.fsproj",
     "engines": {
         "fable": "0.6.7"
     }

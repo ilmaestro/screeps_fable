@@ -1,12 +1,24 @@
 {
-  "name": "screeps fable",
+  "name": "screeps_fable",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
   "author": "Ryan Kilkenny",
   "license": "ISC",
+  "scripts": {
+    "clean:out": "rm -Rf ./out",
+    "clean:deploy": "rm -rfv /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable/*",
+    "compile": "fable",
+    "bablify": "babel out/src --out-file out/main.js",
+    "deploy:scripts": "cp -R ./out/src/* /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable",
+    "start": "npm run clean:out && npm run compile && npm run clean:deploy && npm run deploy:scripts && npm run deploy:fable",
+    "deploy:fable": "cp ./node_modules/fable-core/fable-core.min.js /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable/fable-core.js"
+  },
   "dependencies": {
     "fable": "^1.0.1",
     "fable-core": "^0.6.7"
+  },
+  "devDependencies": {
+    "typings": "^1.4.0"
   }
 }
