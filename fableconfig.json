@@ -1,17 +1,12 @@
 {
-    "module": "amd",
+    "module": "es2015",
     "outDir": "out",
-    "sourceMaps": true,
-    "projFile": "index.fsx",
+    "sourceMaps": false,
+    "projFile": "src/main.fsx",
     "scripts": {
-
-    },
-    "targets": {
-        "production": {
-            "sourceMaps": false
-        }
+        "prebuild": "npm install"
     },
     "engines": {
-        "fable": "0.5.2"
+        "fable": "0.6.7"
     }
 }

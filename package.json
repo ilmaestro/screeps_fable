@@ -1,0 +1,12 @@
+{
+  "name": "screeps fable",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "author": "Ryan Kilkenny",
+  "license": "ISC",
+  "dependencies": {
+    "fable": "^1.0.1",
+    "fable-core": "^0.6.7"
+  }
+}
