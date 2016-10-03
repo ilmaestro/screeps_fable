@@ -4,6 +4,7 @@
 #load "./action.harvest.fs"
 #load "./action.upgrade.fs"
 #load "./action.build.fs"
+#load "./action.repair.fs"
 #load "./manage.spawn.fs"
 
 open System
@@ -26,6 +27,7 @@ let creepDispatcher name =
             | Harvest -> Harvest.run
             | Upgrade -> Upgrade.run
             | Build -> Build.run
+            | Repair -> Repair.run
         action(creep, memory)
     | None -> ()
 

@@ -4,6 +4,22 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 
+type Position = {
+    x: float;
+    y: float;
+    roomName: string;
+}
+
+type EnergyStructure = {
+    structureType: string;
+    energy: float;
+    energyCapacity: float;
+}
+
+// type EnergyStorage = {
+
+// }
+
 type EnergyState =
     | Empty
     | Energy of float
@@ -13,16 +29,18 @@ type RoleType =
     | Harvest
     | Upgrade
     | Build
-    // | Repair
+    | Repair
 
 type ActionResult =
     | Moving of RoleType // since its not role-specific
     | Harvesting
     | Transferring
     | Upgrading
-    | Building
+    | Building of Position
+    | Repairing
     | Idle
     | Fail
+
 
 type CreepMemory = {
     controllerId: string;
@@ -35,7 +53,15 @@ type GameMemory = {
     lastRoleItem: int
 }
 
-let roleOrder = [Harvest; Upgrade; Build]
+let roleOrder = [Harvest; Upgrade; Build; Repair;]
+
+[<Emit("new RoomPosition($0, $1, $2)")>]
+let roomPosition (x: float, y: float, roomName: string): RoomPosition = jsNative
+
+let filter<'T> (x: 'T -> bool) =
+    createObj [
+        "filter" ==> x
+    ]
 
 let getMemory (object) (name: string) defaultValue =
     match unbox object?(name) with

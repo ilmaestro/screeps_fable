@@ -51,7 +51,7 @@
     <Compile Include="src\action.harvest.fs" />
     <Compile Include="src\action.upgrade.fs" />
     <Compile Include="src\action.build.fs" />
-  
+    <Compile Include="src\action.repair.fs" />
     <Compile Include="src\main.fsx" />
     <None Include="App.config" />
     <None Include="fableconfig.json" />

@@ -17,8 +17,15 @@ let findEnergy (creep: Creep) =
         | _ -> Fail
     | None -> Fail
 
+let energyStructures = new ResizeArray<string>[|Globals.STRUCTURE_SPAWN; Globals.STRUCTURE_EXTENSION; Globals.STRUCTURE_TOWER; |]
+let energyContainers = new ResizeArray<string>[|Globals.STRUCTURE_CONTAINER; Globals.STRUCTURE_STORAGE; |]
+
+let energyStructureFilter =
+    filter<EnergyStructure>(fun s -> 
+        energyStructures.Contains(s.structureType) && s.energy < s.energyCapacity)
+
 let transferEnergy (creep: Creep) =
-    match (creep.pos.findClosestByPath(Globals.FIND_MY_SPAWNS)) with
+    match (creep.pos.findClosestByPath(Globals.FIND_STRUCTURES, energyStructureFilter)) with
     | Some spawn ->
         match (creep.transfer(spawn, Globals.RESOURCE_ENERGY)) with
         | r when r = Globals.OK -> Transferring

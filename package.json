@@ -11,7 +11,7 @@
     "compile": "fable",
     "bablify": "babel out/src --out-file out/main.js",
     "deploy:scripts": "cp -R ./out/src/* /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable",
-    "start": "npm run clean:out && npm run compile && npm run clean:deploy && npm run deploy:scripts && npm run deploy:fable",
+    "start": "npm run clean:out && npm run compile && npm run clean:deploy && npm run deploy:fable && npm run deploy:scripts",
     "deploy:fable": "cp ./node_modules/fable-core/fable-core.min.js /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable/fable-core.js"
   },
   "dependencies": {
