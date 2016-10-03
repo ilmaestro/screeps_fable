@@ -3,23 +3,7 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-
-type HarvestState =
-    | Empty
-    | SomeEnergy of float
-    | Full
-
-type HarvestResult =
-    | Moving
-    | Harvesting
-    | Transferring
-    | Fail
-
-let creepState (creep: Creep) =
-    match creep.carry.energy with
-    | Some energy when energy = creep.carryCapacity -> Full
-    | Some energy when energy > 0. -> SomeEnergy(energy)
-    | _ -> Empty
+open Helpers
 
 let findEnergy (creep: Creep) =
     match (creep.pos.findClosestByPath(Globals.FIND_SOURCES_ACTIVE)) with
@@ -29,7 +13,7 @@ let findEnergy (creep: Creep) =
             Harvesting
         | r when r = Globals.ERR_NOT_IN_RANGE -> 
             creep.moveTo(U2.Case2 (box target)) |> ignore
-            Moving
+            Moving (Harvest)
         | _ -> Fail
     | None -> Fail
 
@@ -40,18 +24,21 @@ let transferEnergy (creep: Creep) =
         | r when r = Globals.OK -> Transferring
         | r when r = Globals.ERR_NOT_IN_RANGE ->
             creep.moveTo(U2.Case2 (box spawn)) |> ignore
-            Moving
+            Moving (Harvest)
         | _ -> Fail
     | None -> Fail
 
-let run(name: string) =
+let run(creep: Creep, memory: CreepMemory) =
+    let setLastAction action = setCreepMemory creep { memory with lastAction = action }
+    let findEnergy() = findEnergy creep |> setLastAction
+    let transfer() = transferEnergy creep |> setLastAction
 
-    match unbox Globals.Game.creeps?(name) with
-    | Some c -> 
-        let creep = c :> Creep
-        let state = creepState creep
-        match state with
-        | Empty -> (findEnergy creep) |> ignore
-        | SomeEnergy _ -> (findEnergy creep) |> ignore
-        | Full -> (transferEnergy creep) |> ignore
-    | None -> ()
+    match ((creepEnergy creep), memory.lastAction) with
+    | (Empty, _) -> 
+        findEnergy()
+    | (Full, _) -> 
+        transfer() // only takes a single tick to transfer
+    | (_, lastaction)    ->
+        //printfn "%s ?? %A" creep.name lastaction 
+        findEnergy()
+
