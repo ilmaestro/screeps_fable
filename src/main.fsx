@@ -6,6 +6,7 @@
 #load "./action.build.fs"
 #load "./action.repair.fs"
 #load "./manage.spawn.fs"
+#load "./manage.memory.fs"
 
 open System
 open System.Collections.Generic
@@ -13,9 +14,6 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Helpers
-
-[<Emit("Object.keys($0)")>]
-let getKeys obj: string list = jsNative
 
 let creepDispatcher name =
     match unbox Globals.Game.creeps?(name) with
@@ -32,5 +30,6 @@ let creepDispatcher name =
     | None -> ()
 
 let loop() =
+    MemoryManager.run()
     getKeys Globals.Game.spawns |> List.iter SpawnManager.run
     getKeys Globals.Game.creeps |> List.iter creepDispatcher

@@ -16,9 +16,11 @@ type EnergyStructure = {
     energyCapacity: float;
 }
 
-// type EnergyStorage = {
-
-// }
+type ResourceContainer = {
+    structureType: string;
+    store: System.Collections.Generic.IDictionary<int,float>;
+    storeCapacity: float;
+}
 
 type EnergyState =
     | Empty
@@ -94,6 +96,9 @@ let setCreepMemory (creep: Creep) (memory: CreepMemory) =
     creep.memory?spawnId <- s
     creep.memory?role <- r
     creep.memory?lastAction <- la
+
+[<Emit("Object.keys($0)")>]
+let getKeys obj: string list = jsNative
 
 // Init the game memory if necessary
 match unbox Globals.Memory?game with
