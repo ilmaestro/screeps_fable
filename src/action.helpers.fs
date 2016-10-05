@@ -5,13 +5,6 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Helpers
 
-(*
-    Types
-*)
-type CreepRail = Creep -> ActionResult
-type CreepContinue = ActionResult -> ActionResult
-
-
 
 (*
     Private Stuff
