@@ -23,6 +23,7 @@ let run(creep: Creep, memory: CreepMemory) =
         beginAction creep
         |> repairStructures
         |> build
+        |> upgradeController
         |> endAction memory
 
     match ((creepEnergy creep), memory.lastAction) with
@@ -33,7 +34,6 @@ let run(creep: Creep, memory: CreepMemory) =
         | Harvesting -> harvest()
         | Moving action ->
             match action with
-            | Repairing -> repair()
-            | Building _ -> repair()
-            | _ -> harvest()
+            | Harvesting -> harvest()
+            | _ -> repair()
         | _ -> repair()

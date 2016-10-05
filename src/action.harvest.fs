@@ -11,7 +11,7 @@ open Action.Helpers
 *)
 
 let run(creep: Creep, memory: CreepMemory) =
-    let findEnergy() =
+    let harvest() =
         beginAction creep
         |> pickupDroppedResources
         |> harvestEnergySources
@@ -19,23 +19,21 @@ let run(creep: Creep, memory: CreepMemory) =
 
     let transfer() = 
         beginAction creep
-        |> transferEnergy
+        |> transferEnergyToStructures
+        |> transferEnergyToContainers
         |> upgradeController
         |> endAction memory
 
     match ((creepEnergy creep), memory.lastAction) with
+    | (Empty, _)    -> harvest()
+    | (Full, _)     -> transfer() // only takes a single tick to transfer
     | (Energy _, lastaction) ->
         match lastaction with
-        | Harvesting -> findEnergy()
-        | Transferring -> transfer()
-        | Upgrading -> transfer()
+        | Harvesting -> harvest()
         | Moving action ->
             match action with
-            | Harvesting -> findEnergy()
-            | Transferring -> transfer()
-            | Upgrading -> transfer()
-            | _ -> findEnergy()
-        | _ -> findEnergy()
-    | (Empty, _)    -> findEnergy()
-    | (Full, _)     -> transfer() // only takes a single tick to transfer
+            | Harvesting -> harvest()
+            | _ -> transfer()
+        | _ -> transfer()
+
 

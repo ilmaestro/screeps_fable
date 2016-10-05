@@ -18,7 +18,7 @@ type EnergyStructure = {
 
 type ResourceContainer = {
     structureType: string;
-    store: System.Collections.Generic.IDictionary<int,float>;
+    store: System.Collections.Generic.IDictionary<string,float>;
     storeCapacity: float;
 }
 

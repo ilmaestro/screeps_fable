@@ -19,42 +19,36 @@ type CreepContinue = ActionResult -> ActionResult
 let private energyStructures = new ResizeArray<string>[|Globals.STRUCTURE_SPAWN; Globals.STRUCTURE_EXTENSION; Globals.STRUCTURE_TOWER; |]
 let private resourceContainers = new ResizeArray<string>[|Globals.STRUCTURE_CONTAINER; Globals.STRUCTURE_STORAGE; |]
 
-let private energyStructureFilter =
-    filter<EnergyStructure>(fun s -> 
+[<Emit("_.sum($0.store) < $0.storeCapacity")>]
+let private resourceContainerNotFull (r: ResourceContainer): bool = jsNative
+
+let private resourceContainerHasSome (r: ResourceContainer) resourceType =
+    r.store.[resourceType] > 0.
+
+let private findClosest<'T> (find: float) (f: obj) (pos: RoomPosition) =
+    Some (pos.findClosestByPath<'T>(find, f))
+
+let private findClosestActiveSources pos = 
+    findClosest<Source> Globals.FIND_SOURCES_ACTIVE (filter<Source>(fun _ -> true)) pos
+
+let private findClosestEnergyStructure pos = 
+    let structureFilter = filter<EnergyStructure>(fun s -> 
         energyStructures.Contains(s.structureType) && s.energy < s.energyCapacity)
+    findClosest<Structure> Globals.FIND_STRUCTURES structureFilter pos
 
-let private resourceContainerNotFull (r: ResourceContainer) =
-    if r.store.Count = 0 
-    then false
-    else
-        let totalStorage =
-            r.store.Keys
-            |> Seq.toList 
-            |> List.map (fun resourceType -> r.store.[resourceType])
-            |> List.append [ 0.; ] // in no keys
-            |> List.sum
-        totalStorage < r.storeCapacity
+let private findClosestEnergyContainer pos = 
+    let containerFilter = filter<ResourceContainer>(fun r ->
+        resourceContainers.Contains(r.structureType) && resourceContainerNotFull r)
+    findClosest<Structure> Globals.FIND_STRUCTURES containerFilter pos
 
-let private resourceContainerFilter =
-    filter<ResourceContainer>(fun r ->
-        resourceContainers.Contains(r.structureType) && resourceContainerNotFull(r))
+let private findClosestContainerWithSome pos resourceType =
+    let containerFilter = filter<ResourceContainer>(fun r ->
+        resourceContainers.Contains(r.structureType) && resourceContainerHasSome r resourceType )
+    findClosest<Structure> Globals.FIND_STRUCTURES containerFilter pos
 
 (*
     Public Methods
 *)
-let tryOnIdle action creep actionresult =
-    match actionresult with
-    | Idle -> action creep
-    | result -> result
-
-let findClosest<'T> (find: float) (f: obj) (pos: RoomPosition) =
-    Some (pos.findClosestByPath<'T>(find, f))
-
-let findClosestStorage pos = 
-    findClosest<Structure> Globals.FIND_STRUCTURES resourceContainerFilter pos
-
-let findClosestActiveSources pos = 
-    findClosest<Source> Globals.FIND_SOURCES_ACTIVE (filter<Source>(fun _ -> true)) pos
 
 let beginAction (creep: Creep) =
     //printfn "%s beginning action.."
@@ -109,24 +103,43 @@ let harvestEnergySources lastresult =
         | None -> Success (creep, Idle)
     | result -> result
 
-// let findEnergyContainers (creep: Creep) =
-//     match findClosestActiveSources creep.pos with
-//     | Some target ->
-//         match (tryOrMoveTo (creep.withdraw(U2.Case1 target)) creep (U2.Case2 (box target))) with
-//         | ActionSuccess _ -> Harvesting
-//         | MoveSuccess _ -> Moving Harvesting
-//         | Failure _ -> Fail
-//     | None -> Fail
-
-let transferEnergy lastresult =
+let withdrawEnergyFromContainer lastresult =
     match lastresult with
     | Success (creep, Idle) ->
-        match (creep.pos.findClosestByPath(Globals.FIND_STRUCTURES, energyStructureFilter)) with
-        | Some spawn ->
-            match (creep.transfer(spawn, Globals.RESOURCE_ENERGY)) with
+        match (findClosestContainerWithSome creep.pos Globals.RESOURCE_ENERGY) with
+        | Some target ->
+            match creep.withdraw(target, Globals.RESOURCE_ENERGY) with
+            | r when r = Globals.OK -> Success (creep, Harvesting)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case1 target.pos) |> ignore
+                Success (creep, Moving Harvesting)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let transferEnergyToStructures lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match findClosestEnergyStructure creep.pos with
+        | Some structure ->
+            match (creep.transfer(U3.Case3 structure, Globals.RESOURCE_ENERGY)) with
             | r when r = Globals.OK -> Success (creep, Transferring)
             | r when r = Globals.ERR_NOT_IN_RANGE ->
-                creep.moveTo(U2.Case2 (box spawn)) |> ignore
+                creep.moveTo(U2.Case2 (box structure)) |> ignore
+                Success (creep, Moving Transferring)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let transferEnergyToContainers lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match findClosestEnergyContainer creep.pos with
+        | Some structure ->
+            match (creep.transfer(U3.Case3 structure, Globals.RESOURCE_ENERGY)) with
+            | r when r = Globals.OK -> Success (creep, Transferring)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box structure)) |> ignore
                 Success (creep, Moving Transferring)
             | r -> Failure r
         | None -> Success (creep, Idle)
