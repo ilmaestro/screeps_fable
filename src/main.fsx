@@ -1,6 +1,8 @@
 #r "../node_modules/fable-core/Fable.Core.dll"
 #load "../library/Fable.Import.Screeps.fs"
 #load "./helpers.fs"
+#load "./action.helpers.fs"
+#load "./action.idle.fs"
 #load "./action.harvest.fs"
 #load "./action.upgrade.fs"
 #load "./action.build.fs"
@@ -22,10 +24,11 @@ let creepDispatcher name =
         let memory = creepMemory creep
         let action =
             match memory.role with
-            | Harvest -> Harvest.run
-            | Upgrade -> Upgrade.run
-            | Build -> Build.run
-            | Repair -> Repair.run
+            | Harvest -> Action.Harvest.run
+            | Upgrade -> Action.Upgrade.run
+            | Build -> Action.Build.run
+            | Repair -> Action.Repair.run
+        // printfn "dispatching %s to %A" creep.name memory.role
         action(creep, memory)
     | None -> ()
 

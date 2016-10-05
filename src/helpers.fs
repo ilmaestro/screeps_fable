@@ -33,26 +33,30 @@ type RoleType =
     | Build
     | Repair
 
-type ActionResult =
-    | Moving of RoleType // since its not role-specific
+type CreepAction =
+    | Moving of CreepAction // since its not role-specific
     | Harvesting
     | Transferring
     | Upgrading
     | Building of Position
     | Repairing
     | Idle
-    | Fail
+
+type ActionResult =
+    | Success of Creep * CreepAction
+    | Failure of float
 
 
 type CreepMemory = {
     controllerId: string;
     spawnId: string;
     role: RoleType;
-    lastAction: ActionResult;
+    lastAction: CreepAction;
 }
 
 type GameMemory = {
-    lastRoleItem: int
+    lastRoleItem: int;
+    creepCount: int;
 }
 
 let roleOrder = [Harvest; Upgrade; Build; Repair;]
@@ -80,12 +84,13 @@ let creepMemory (creep: Creep) =
     let controllerId = unbox<string> (getMemory creep.memory "controllerId" "")
     let spawnId = unbox<string> (getMemory creep.memory "spawnId" "")
     let role = unbox<RoleType> (getMemory creep.memory "role" Harvest)
-    let lastAction = unbox<ActionResult> (getMemory creep.memory "lastAction" Idle)
+    let lastAction = unbox<CreepAction> (getMemory creep.memory "lastAction" Idle)
     { controllerId = controllerId; spawnId = spawnId; role = role; lastAction = lastAction }
 
 let gameMemory() =
     let lastRoleItem = unbox<int> (getMemory (Globals.Memory.Item("game")) "lastRoleItem" 0)
-    { lastRoleItem = lastRoleItem}
+    let creepCount = unbox<int> (getMemory (Globals.Memory.Item("game")) "creepCount" 0)
+    { lastRoleItem = lastRoleItem; creepCount = creepCount }
 
 let setGameMemory (memory: GameMemory) =
     Globals.Memory?game <- memory
@@ -105,4 +110,4 @@ match unbox Globals.Memory?game with
 | Some g -> ()
 | None ->
     setGameMemory(
-        { lastRoleItem = 0; })
+        { lastRoleItem = 0; creepCount = 0; })

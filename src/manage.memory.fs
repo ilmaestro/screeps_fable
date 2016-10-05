@@ -14,12 +14,20 @@ open Helpers
 [<Emit("delete Memory.creeps[$0]")>]
 let deleteCreepMemory name = jsNative
 
-let clearDeadCreepMems () =
+let logDelete name =
+    printfn "deleting %s" name
+    name
+
+let clearDeadCreepMems (creepKeys: ResizeArray<string>) =
     // check for dead creep memories..
-    let creepKeys = new ResizeArray<string> (getKeys Globals.Game.creeps)
     getKeys Globals.Memory.creeps
     |> List.filter (creepKeys.Contains >> not)
-    |> List.iter deleteCreepMemory
+    |> List.iter (logDelete >> deleteCreepMemory)
+
+let setCurrentCreepCount (creepKeys: ResizeArray<string>) =
+    setGameMemory({ gameMemory() with creepCount = creepKeys.Count})
 
 let run () =
-    clearDeadCreepMems()
+    let creepKeys = new ResizeArray<string> (getKeys Globals.Game.creeps)
+    clearDeadCreepMems creepKeys
+    setCurrentCreepCount creepKeys

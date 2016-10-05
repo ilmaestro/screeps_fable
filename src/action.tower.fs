@@ -1,4 +1,4 @@
-module Tower
+module Action.Tower
 open System
 open Fable.Core
 open Fable.Core.JsInterop

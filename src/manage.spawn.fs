@@ -6,6 +6,13 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Helpers
 
+(*
+    TODOs:
+    - Don't spawn more than MAX creeps setting
+    - don't spawn repair creeps until there are things to repair.. 
+    - level 1 vs. level2 etc... creeps?
+*)
+let maxCreepsAllowed = 10
 let maxParts (energy: float) =
     // add work, carry, move, move until capacity
     // fill with move (1 extra per carry)
@@ -19,7 +26,7 @@ let maxParts (energy: float) =
             yield Globals.CARRY
             yield Globals.MOVE
             yield Globals.MOVE
-            for y in 1 .. extraMoves do yield if y % 2 = 0 then Globals.CARRY else Globals.MOVE
+            //for y in 1 .. extraMoves do yield if y % 2 = 0 then Globals.CARRY else Globals.MOVE
         |]
 
 let nextRole() =
@@ -36,7 +43,7 @@ let run(name: string) =
         let spawn = s :> Spawn
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
 
-        if maxEnergy then
+        if maxEnergy && gameMemory().creepCount < maxCreepsAllowed then
             let parts = maxParts(spawn.room.energyAvailable)
             let memory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole(); lastAction = Idle }
             let result = spawn.createCreep(parts, null, box (memory))
