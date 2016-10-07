@@ -7,6 +7,7 @@
 #load "./action.upgrade.fs"
 #load "./action.build.fs"
 #load "./action.repair.fs"
+#load "./manage.construction.fs"
 #load "./manage.spawn.fs"
 #load "./manage.memory.fs"
 

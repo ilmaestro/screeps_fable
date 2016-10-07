@@ -37,18 +37,39 @@ let nextRole() =
     printfn "next role: %A" nextAction
     nextAction
 
+let checkConstruction (spawn: Spawn) =
+    let memory = gameMemory()
+    match spawn.room.controller.level, memory.lastConstructionLevel with
+    | level, lastLevel when level = 1. && lastLevel = 0 ->
+        Manage.Construction.createRoadsToSpawn spawn 1
+        Manage.Construction.createRoadsAroundSpawn spawn
+        setGameMemory({ memory with lastConstructionLevel = 1 })
+    | level, lastLevel when level = 2. && lastLevel = 1 ->
+        setGameMemory({ memory with lastConstructionLevel = 2 })
+    | level, _ when level = 3. ->
+        Manage.Construction.createOuterWalls(spawn.room)
+    | _ -> ()
+    spawn
+
+let checkCreeps (spawn: Spawn) = 
+    let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
+
+    if maxEnergy && gameMemory().creepCount < maxCreepsAllowed then
+        let parts = maxParts(spawn.room.energyAvailable)
+        let memory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole(); lastAction = Idle }
+        let result = spawn.createCreep(parts, null, box (memory))
+        match box result with
+        | :? string -> printfn "Spawned creep name: %s" (unbox<string> result)
+        | :? int -> printfn "Failed to spawn with code %A" (box result)
+        | _ -> ()
+
+    spawn
+
 let run(name: string) =
     match unbox Globals.Game.spawns?(name) with
     | Some s ->
-        let spawn = s :> Spawn
-        let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
-
-        if maxEnergy && gameMemory().creepCount < maxCreepsAllowed then
-            let parts = maxParts(spawn.room.energyAvailable)
-            let memory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole(); lastAction = Idle }
-            let result = spawn.createCreep(parts, null, box (memory))
-            match box result with
-            | :? string -> printfn "Spawned creep name: %s" (unbox<string> result)
-            | :? int -> printfn "Failed to spawn with code %A" (box result)
-            | _ -> ()
+        (s :> Spawn)
+        |> checkCreeps
+        |> checkConstruction
+        |> ignore
     | None -> ()

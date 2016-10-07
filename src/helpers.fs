@@ -57,9 +57,10 @@ type CreepMemory = {
 type GameMemory = {
     lastRoleItem: int;
     creepCount: int;
+    lastConstructionLevel: int;
 }
 
-let roleOrder = [Harvest; Upgrade; Build; Repair;]
+let roleOrder = [Harvest; Build; Upgrade; Repair;]
 
 [<Emit("new RoomPosition($0, $1, $2)")>]
 let roomPosition (x: float, y: float, roomName: string): RoomPosition = jsNative
@@ -90,7 +91,8 @@ let creepMemory (creep: Creep) =
 let gameMemory() =
     let lastRoleItem = unbox<int> (getMemory (Globals.Memory.Item("game")) "lastRoleItem" 0)
     let creepCount = unbox<int> (getMemory (Globals.Memory.Item("game")) "creepCount" 0)
-    { lastRoleItem = lastRoleItem; creepCount = creepCount }
+    let lastConstructionLevel = unbox<int> (getMemory (Globals.Memory.Item("game")) "lastConstructionLevel" 0)
+    { lastRoleItem = lastRoleItem; creepCount = creepCount; lastConstructionLevel = lastConstructionLevel; }
 
 let setGameMemory (memory: GameMemory) =
     Globals.Memory?game <- memory
@@ -110,4 +112,4 @@ match unbox Globals.Memory?game with
 | Some g -> ()
 | None ->
     setGameMemory(
-        { lastRoleItem = 0; creepCount = 0; })
+        { lastRoleItem = 0; creepCount = 0; lastConstructionLevel = 0; })

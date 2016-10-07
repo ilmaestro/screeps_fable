@@ -47,8 +47,9 @@
   <ItemGroup>
     <Compile Include="library\Fable.Import.Screeps.fs" />
     <Compile Include="src\helpers.fs" />
-    <Compile Include="src\manage.spawn.fs" />
     <Compile Include="src\manage.memory.fs" />
+    <Compile Include="src\manage.construction.fs" />
+    <Compile Include="src\manage.spawn.fs" />
     <Compile Include="src\action.helpers.fs" />
     <Compile Include="src\action.idle.fs" />
     <Compile Include="src\action.harvest.fs" />
