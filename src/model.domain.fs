@@ -76,7 +76,8 @@ type SpawnMemory = {
     lastConstructionLevel: int;
 }
 
-let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
+let roleOrder = [Harvest; Build; Harvest; Build; Build; Guard;]
+//let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
 
 // ========
 // Utility Functions

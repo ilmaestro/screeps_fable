@@ -32,8 +32,9 @@ module MemoryInSpawn =
             lastConstructionLevel =  unbox<int> (getMemoryObject spawn.memory "lastConstructionLevel" 0)}
 
     let set (spawn: Spawn) (memory: SpawnMemory) =
-        let {lastRoleItem = r} = memory
+        let {lastRoleItem = r; lastConstructionLevel = lcl} = memory
         spawn.memory?lastRoleItem <- r
+        spawn.memory?lastConstructionLevel <- lcl
 
 module MemoryInCreep =
     (*

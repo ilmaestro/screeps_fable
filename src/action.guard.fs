@@ -12,15 +12,15 @@ open Action.Helpers
     body: ranged attack, heal, tough, move
     purpose: patrol the perimeter and look for and attack hostile creeps
     states: attack hostiles, heal friends, patrol the perimeter
+
 *)
 
 let run(creep: Creep, memory: CreepMemory) =
-    let guard() =
-        beginAction creep
-        |> defendHostiles
+    //printfn "%s is defending" creep.name 
+    beginAction creep
+    |> defendHostiles
 //        |> healFriends
 //        |> patrol
-        |> endAction memory
-
-    match memory.lastAction with
-    | _ -> guard()
+    |> endAction memory
+    //printfn "%s finished defending" creep.name 
+    

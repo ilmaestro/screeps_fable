@@ -31,7 +31,7 @@ let maxParts (energy: float, roleType: RoleType) =
 
     match roleType with
     | Guard ->
-        new ResizeArray<string>[| Globals.RANGED_ATTACK; Globals.MOVE; Globals.MOVE; Globals.TOUGH; Globals.TOUGH; Globals.TOUGH; |]
+        new ResizeArray<string>[| Globals.ATTACK; Globals.MOVE; Globals.MOVE; Globals.TOUGH; Globals.TOUGH; |]
     | _ -> 
         let baseCost = 250.
         let moveCost = 50.
@@ -55,18 +55,6 @@ let ifEmptyQueue queue f spawn =
     | [] -> f spawn
     | _ -> spawn
 
-let checkConstruction (memory: SpawnMemory) (spawn: Spawn) =
-    match spawn.room.controller.level, memory.lastConstructionLevel with
-    | level, lastLevel when level = 1. && lastLevel = 0 ->
-        Manage.Construction.Things.createRoadsToSpawn spawn 1
-        Manage.Construction.Things.createRoadsAroundSpawn spawn
-        MemoryInSpawn.set spawn { memory with lastConstructionLevel = 1 }
-    | level, lastLevel when level = 2. && lastLevel = 1 ->
-        MemoryInSpawn.set spawn { memory with lastConstructionLevel = 2 }
-    | level, _ when level = 3. ->
-        Manage.Construction.Things.createOuterWalls(spawn.room)
-    | _ -> ()
-    spawn
 
 let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
     let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
@@ -87,5 +75,5 @@ let checkCreeps (memory: SpawnMemory) (spawn: Spawn) =
 let run (spawn: Spawn, memory: SpawnMemory ) =
     spawn
     |> checkCreeps memory
-    |> ifEmptyQueue (MemoryInGame.get().constructionQueue) (checkConstruction memory)
+    |> ifEmptyQueue (MemoryInGame.get().constructionQueue) (Manage.Construction.GameTick.checkConstruction memory)
     |> ignore

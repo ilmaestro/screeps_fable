@@ -189,10 +189,16 @@ let repairStructures lastresult =
 let defendHostiles lastresult =
     match lastresult with
     | Success (creep, Idle) ->
-        match unbox (creep.pos.findClosestByRange<Creep>(Globals.FIND_HOSTILE_CREEPS)) with
+        match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS)) with
         | Some enemy ->
             match creep.attack(enemy) with
             | r when r = Globals.OK -> Success (creep, Defending)
+            | r when r = Globals.ERR_NO_BODYPART ->
+                // TODO: figure out how to fall back on another body
+                Success (creep, Defending)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box enemy)) |> ignore
+                Success (creep, Moving Defending)
             | r -> Failure r
         | None -> Success (creep, Idle)
     | result -> result
@@ -204,6 +210,9 @@ let healFriends lastresult =
         | Some friend ->
             match creep.heal(friend) with
             | r when r = Globals.OK -> Success (creep, Defending)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case1 friend.pos) |> ignore
+                Success (creep, Moving Defending)
             | r -> Failure r
         | None -> Success (creep, Idle)
     | result -> result
