@@ -4,7 +4,8 @@ open System.Collections.Generic
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Helpers
+open Model.Domain
+open Manage.Memory
 
 (*
     TODOs:
@@ -13,63 +14,78 @@ open Helpers
     - level 1 vs. level2 etc... creeps?
 *)
 let maxCreepsAllowed = 10
-let maxParts (energy: float) =
+let partCosts = 
+    dict [
+        Globals.MOVE, 50.;
+        Globals.WORK, 100.;
+        Globals.CARRY, 50.;
+        Globals.ATTACK, 80.;
+        Globals.RANGED_ATTACK, 150.;
+        Globals.HEAL, 250.;
+        Globals.CLAIM, 600.;
+        Globals.TOUGH, 10.;
+        ]
+let maxParts (energy: float, roleType: RoleType) =
     // add work, carry, move, move until capacity
     // fill with move (1 extra per carry)
-    let baseCost = 250.
-    let moveCost = 50.
-    let scale = int(Math.Floor(energy / baseCost))
-    let extraMoves = int(Math.Floor((energy - baseCost * float(scale)) / moveCost))
-    new ResizeArray<string>[|
-        for x in 1 .. scale do
-            yield Globals.WORK
-            yield Globals.CARRY
-            yield Globals.MOVE
-            yield Globals.MOVE
-            //for y in 1 .. extraMoves do yield if y % 2 = 0 then Globals.CARRY else Globals.MOVE
-        |]
 
-let nextRole() =
-    let memory = gameMemory()
-    let nextAction = roleOrder.Item(memory.lastRoleItem)
-    let nextRoleItem = if memory.lastRoleItem < (roleOrder.Length - 1) then memory.lastRoleItem + 1 else 0
-    setGameMemory({ memory with lastRoleItem = nextRoleItem })
-    printfn "next role: %A" nextAction
-    nextAction
+    match roleType with
+    | Guard ->
+        new ResizeArray<string>[| Globals.RANGED_ATTACK; Globals.MOVE; Globals.MOVE; Globals.TOUGH; Globals.TOUGH; Globals.TOUGH; |]
+    | _ -> 
+        let baseCost = 250.
+        let moveCost = 50.
+        let scale = int(Math.Floor(energy / baseCost))
+        let extraMoves = int(Math.Floor((energy - baseCost * float(scale)) / moveCost))
+        new ResizeArray<string>[|
+            for x in 1 .. scale do
+                yield Globals.WORK
+                yield Globals.CARRY
+                yield Globals.MOVE
+                yield Globals.MOVE
+                //for y in 1 .. extraMoves do yield if y % 2 = 0 then Globals.CARRY else Globals.MOVE
+                if extraMoves > 0 then yield Globals.MOVE // add an extra move if we can.
+            |]
 
-let checkConstruction (spawn: Spawn) =
-    let memory = gameMemory()
+let getNextRole lastRole =
+    (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
+
+let ifEmptyQueue queue f spawn =
+    match queue with
+    | [] -> f spawn
+    | _ -> spawn
+
+let checkConstruction (memory: SpawnMemory) (spawn: Spawn) =
     match spawn.room.controller.level, memory.lastConstructionLevel with
     | level, lastLevel when level = 1. && lastLevel = 0 ->
-        Manage.Construction.createRoadsToSpawn spawn 1
-        Manage.Construction.createRoadsAroundSpawn spawn
-        setGameMemory({ memory with lastConstructionLevel = 1 })
+        Manage.Construction.Things.createRoadsToSpawn spawn 1
+        Manage.Construction.Things.createRoadsAroundSpawn spawn
+        MemoryInSpawn.set spawn { memory with lastConstructionLevel = 1 }
     | level, lastLevel when level = 2. && lastLevel = 1 ->
-        setGameMemory({ memory with lastConstructionLevel = 2 })
+        MemoryInSpawn.set spawn { memory with lastConstructionLevel = 2 }
     | level, _ when level = 3. ->
-        Manage.Construction.createOuterWalls(spawn.room)
+        Manage.Construction.Things.createOuterWalls(spawn.room)
     | _ -> ()
     spawn
 
-let checkCreeps (spawn: Spawn) = 
+let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
     let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
 
-    if maxEnergy && gameMemory().creepCount < maxCreepsAllowed then
-        let parts = maxParts(spawn.room.energyAvailable)
-        let memory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole(); lastAction = Idle }
-        let result = spawn.createCreep(parts, null, box (memory))
+    if maxEnergy && MemoryInGame.get().creepCount < maxCreepsAllowed then
+        let (nextRole, nextRoleItem) = getNextRole memory.lastRoleItem
+        let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole; lastAction = Idle }
+        let parts = maxParts(spawn.room.energyAvailable, nextRole)
+        let result = spawn.createCreep(parts, null, box (creepMemory))
         match box result with
-        | :? string -> printfn "Spawned creep name: %s" (unbox<string> result)
+        | :? string -> 
+            printfn "Spawned creep name: %s" (unbox<string> result)
+            MemoryInSpawn.set spawn {memory with lastRoleItem = nextRoleItem }
         | :? int -> printfn "Failed to spawn with code %A" (box result)
         | _ -> ()
-
     spawn
 
-let run(name: string) =
-    match unbox Globals.Game.spawns?(name) with
-    | Some s ->
-        (s :> Spawn)
-        |> checkCreeps
-        |> checkConstruction
-        |> ignore
-    | None -> ()
+let run (spawn: Spawn, memory: SpawnMemory ) =
+    spawn
+    |> checkCreeps memory
+    |> ifEmptyQueue (MemoryInGame.get().constructionQueue) (checkConstruction memory)
+    |> ignore

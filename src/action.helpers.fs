@@ -3,8 +3,8 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Helpers
-
+open Model.Domain
+open Manage.Memory
 
 (*
     Private Stuff
@@ -51,14 +51,14 @@ let endAction memory lastresult =
     match lastresult with
     | Success (creep, action) ->
         // printfn "%s is %A " creep.name action 
-        setCreepMemory creep { memory with lastAction = action }
+        MemoryInCreep.set creep { memory with lastAction = action }
     | Failure r -> printfn "Failure code reported: %f" r
 
 (* You can ALWAYS upgrade your controller *)
 let upgradeController lastresult =
     match lastresult with
     | Success (creep, Idle) ->
-        let memory = (creepMemory creep)
+        let memory = (MemoryInCreep.get creep)
         let controller = unbox<Controller> (Globals.Game.getObjectById(memory.controllerId))
         match (creep.upgradeController(controller)) with
         | r when r = Globals.OK -> Success (creep, Upgrading)
@@ -186,3 +186,31 @@ let repairStructures lastresult =
         | None -> Success (creep, Idle)
     | result -> result
 
+let defendHostiles lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match unbox (creep.pos.findClosestByRange<Creep>(Globals.FIND_HOSTILE_CREEPS)) with
+        | Some enemy ->
+            match creep.attack(enemy) with
+            | r when r = Globals.OK -> Success (creep, Defending)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let healFriends lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match unbox (creep.pos.findClosestByRange<Creep>(Globals.FIND_MY_CREEPS), filter<Creep>(fun c -> c.hits < c.hitsMax)) with
+        | Some friend ->
+            match creep.heal(friend) with
+            | r when r = Globals.OK -> Success (creep, Defending)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let patrol lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        // TODO: patrole the outer .. inner? .. wall.
+        Success (creep, Idle)
+    | result -> result

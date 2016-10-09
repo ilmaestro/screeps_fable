@@ -3,7 +3,8 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Helpers
+open Model.Domain
+open Manage.Memory.MemoryInCreep
 open Action.Helpers
 
 (*
@@ -21,7 +22,7 @@ let run(creep: Creep, memory: CreepMemory) =
 
     let build() = 
         beginAction creep
-        |> build
+        |> build    
         |> repairStructures
         |> upgradeController
         |> endAction memory

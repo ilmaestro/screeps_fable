@@ -3,7 +3,7 @@ open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Helpers
+open Model.Domain
 
 type TowerCommandResult =
 | Action of StructureTower
