@@ -20,7 +20,7 @@ let run(creep: Creep, memory: CreepMemory) =
     beginAction creep
     |> defendHostiles
 //        |> healFriends
-//        |> patrol
+    |> patrol
     |> endAction memory
     //printfn "%s finished defending" creep.name 
     

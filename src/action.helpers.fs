@@ -174,7 +174,7 @@ let quickRepair lastresult =
 let repairStructures lastresult =
     match lastresult with
     | Success (creep, Idle) ->
-        match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < s.hitsMax))) with
+        match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < s.hitsMax && s.structureType <> Globals.STRUCTURE_WALL))) with
         | Some s ->
             // printfn "%s attempting quick repair" creep.name
             match (creep.repair(U2.Case2 s)) with
@@ -185,6 +185,25 @@ let repairStructures lastresult =
             | r -> Failure r
         | None -> Success (creep, Idle)
     | result -> result
+
+/// Goal 1: repair walls wth hits under 5000
+/// Goal 2: the minimum hit goes up with the controller level
+let repairWalls lastresult =
+    let minHits = 5000.
+    match lastresult with
+    | Success (creep, Idle) ->
+        match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < minHits && s.structureType = Globals.STRUCTURE_WALL))) with
+        | Some s ->
+            // printfn "%s attempting quick repair" creep.name
+            match (creep.repair(U2.Case2 s)) with
+            | r when r = Globals.OK -> Success (creep, Repairing)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box s)) |> ignore
+                Success (creep, Moving (Repairing))
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
 
 let defendHostiles lastresult =
     match lastresult with
@@ -221,5 +240,10 @@ let patrol lastresult =
     match lastresult with
     | Success (creep, Idle) ->
         // TODO: patrole the outer .. inner? .. wall.
-        Success (creep, Idle)
+        match (getKeys Globals.Game.flags |> List.filter (fun name -> name.StartsWith("Guard")) |> List.tryHead) with
+        | Some flagName ->
+            let flag = unbox<Flag> Globals.Game.flags?(flagName)
+            creep.moveTo(U2.Case1 flag.pos) |> ignore
+            Success(creep, Moving Defending)
+        | None -> Success (creep, Idle)
     | result -> result

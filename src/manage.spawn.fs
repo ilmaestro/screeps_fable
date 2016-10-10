@@ -13,7 +13,7 @@ open Manage.Memory
     - don't spawn repair creeps until there are things to repair.. 
     - level 1 vs. level2 etc... creeps?
 *)
-let maxCreepsAllowed = 10
+let maxCreepsAllowed = 12
 let partCosts = 
     dict [
         Globals.MOVE, 50.;

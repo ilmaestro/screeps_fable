@@ -23,6 +23,7 @@ let run(creep: Creep, memory: CreepMemory) =
     let repair () = 
         beginAction creep
         |> repairStructures
+        |> repairWalls
         |> build
         |> upgradeController
         |> endAction memory
