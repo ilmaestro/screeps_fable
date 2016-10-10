@@ -25,27 +25,24 @@ let partCosts =
         Globals.CLAIM, 600.;
         Globals.TOUGH, 10.;
         ]
-let maxParts (energy: float, roleType: RoleType) =
-    // add work, carry, move, move until capacity
-    // fill with move (1 extra per carry)
+let totalCost parts =
+    parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
 
-    match roleType with
-    | Guard ->
-        new ResizeArray<string>[| Globals.ATTACK; Globals.MOVE; Globals.MOVE; Globals.TOUGH; Globals.TOUGH; |]
-    | _ -> 
-        let baseCost = 250.
-        let moveCost = 50.
+
+
+let maxParts (energy: float, roleType: RoleType) =
+    let maximizeParts template =
+        let baseCost = totalCost template
         let scale = int(Math.Floor(energy / baseCost))
-        let extraMoves = int(Math.Floor((energy - baseCost * float(scale)) / moveCost))
-        new ResizeArray<string>[|
-            for x in 1 .. scale do
-                yield Globals.WORK
-                yield Globals.CARRY
-                yield Globals.MOVE
-                yield Globals.MOVE
-                //for y in 1 .. extraMoves do yield if y % 2 = 0 then Globals.CARRY else Globals.MOVE
-                if extraMoves > 0 then yield Globals.MOVE // add an extra move if we can.
-            |]
+        seq { 1 .. scale }
+        |> Seq.collect (fun _ -> template)
+
+    let parts = 
+        match roleType with
+        | Guard -> maximizeParts guardTemplate
+        | _ -> maximizeParts workerTemplate
+
+    new ResizeArray<string> (parts)
 
 let getNextRole lastRole =
     (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
@@ -54,7 +51,6 @@ let ifEmptyQueue queue f spawn =
     match queue with
     | [] -> f spawn
     | _ -> spawn
-
 
 let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
     let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable

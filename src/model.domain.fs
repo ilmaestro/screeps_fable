@@ -76,8 +76,11 @@ type SpawnMemory = {
     lastConstructionLevel: int;
 }
 
-let roleOrder = [Harvest; Build; Harvest; Build; Build; Guard;]
-//let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
+//let roleOrder = [Harvest; Harvest; Build; Build;]
+let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
+
+let workerTemplate = seq { yield Globals.WORK; yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
+let guardTemplate = seq { yield Globals.ATTACK; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; }
 
 // ========
 // Utility Functions
