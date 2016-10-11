@@ -208,7 +208,7 @@ let repairWalls lastresult =
 let defendHostiles lastresult =
     match lastresult with
     | Success (creep, Idle) ->
-        match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS)) with
+        match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> not (alliesList.Contains(c.owner.username))))) with
         | Some enemy ->
             match creep.attack(enemy) with
             | r when r = Globals.OK -> Success (creep, Defending)

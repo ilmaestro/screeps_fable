@@ -200,45 +200,6 @@ module GameTick =
             | true -> MemoryInSpawn.set spawn { memory with lastConstructionLevel = constructionLevel + 1 }
             | false -> ()
         spawn
-
-    /// Based on the controller level, queue up various construction projects
-    let checkConstructionOld (memory: SpawnMemory) (spawn: Spawn) =
-        match spawn.room.controller.level, memory.lastConstructionLevel with
-        | level, lastLevel when level = 1. && lastLevel = 0 ->
-            // Level 1: Roads around spawn
-            Projects.createRoadsFromPosToSources spawn.pos
-            Projects.createRoadsAround spawn.pos
-            Projects.getSourcePositionsInRoom spawn.room |> Seq.iter Projects.createRoadsAround
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 1 }
-        | level, lastLevel when level = 2. && lastLevel = 1 ->
-            // Level 2: Roads to sources, extensions
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 2 }
-        | level, lastLevel when level = 3. && lastLevel = 2 ->
-            // Level 3: Roads to controller and exits, more extensions
-            Projects.createRoadsFromPosToSources spawn.room.controller.pos
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 2 }
-        | level, lastLevel when level = 4. && lastLevel = 3 ->
-            // Level 4: Walls
-            Projects.createOuterWalls(spawn.room)
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 3 }
-        | level, lastLevel when level = 5. && lastLevel = 4 ->
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 4 }
-        | level, lastLevel when level = 6. && lastLevel = 5 ->
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 5 }
-        | level, lastLevel when level = 7. && lastLevel = 6 ->
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 6 }
-        | level, lastLevel when level = 8. && lastLevel = 7 ->
-            Projects.createExtensions spawn 5 // should have 5 extensions available
-            MemoryInSpawn.set spawn { memory with lastConstructionLevel = 7 }
-        | _ -> ()
-        spawn
-
     let rec handleConstruction item =
         match constructionItemStatus item with
         | Unconstructed ->

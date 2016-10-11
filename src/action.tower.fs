@@ -10,7 +10,7 @@ type TowerCommandResult =
 | NoAction of StructureTower
 
 let rangedAttack (tower: StructureTower) =
-    match unbox (tower.pos.findClosestByRange<Creep>(Globals.FIND_HOSTILE_CREEPS)) with
+    match unbox (tower.pos.findClosestByRange<Creep>(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> not (alliesList.Contains(c.owner.username))))) with
     | Some target ->
         match tower.attack(target) with
         | _ -> Action tower

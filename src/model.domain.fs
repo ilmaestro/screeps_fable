@@ -4,6 +4,11 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 
+type Allie = {
+    userName: string;
+    roomName: string;
+}
+
 type Position = {
     x: float;
     y: float;
@@ -81,6 +86,8 @@ let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
 
 let workerTemplate = seq { yield Globals.WORK; yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
 let guardTemplate = seq { yield Globals.ATTACK; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; }
+
+let alliesList = ResizeArray<string>[| "CaptainSketchy" |]
 
 // ========
 // Utility Functions
