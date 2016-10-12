@@ -10,6 +10,9 @@
 #load "./action.build.fs"
 #load "./action.repair.fs"
 #load "./action.guard.fs"
+#load "./action.attack.fs"
+#load "./action.claim.fs"
+#load "./action.pioneer.fs"
 
 open System
 open System.Collections.Generic
@@ -31,6 +34,9 @@ let creepDispatcher name =
             | Build -> Action.Build.run
             | Repair -> Action.Repair.run
             | Guard -> Action.Guard.run
+            | Attacker -> Action.Attack.run
+            | Claimer -> Action.Claim.run
+            | Pioneer -> Action.Pioneer.run
         // printfn "dispatching %s to %A" creep.name memory.role
         action(creep, memory)
     | None -> ()

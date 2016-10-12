@@ -28,8 +28,6 @@ let partCosts =
 let totalCost parts =
     parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
 
-
-
 let maxParts (energy: float, roleType: RoleType) =
     let maximizeParts template =
         let baseCost = totalCost template
@@ -40,12 +38,21 @@ let maxParts (energy: float, roleType: RoleType) =
     let parts = 
         match roleType with
         | Guard -> maximizeParts guardTemplate
+        | Attacker -> maximizeParts banditTemplate
+        | Claimer -> maximizeParts claimerTemplate
         | _ -> maximizeParts workerTemplate
 
     new ResizeArray<string> (parts)
 
+// TODO: put these overrides into memory so they can be set in-game.
+let attackerOverride = false
 let getNextRole lastRole =
-    (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
+//    (Claimer, lastRole)
+//    (Pioneer, lastRole)
+    if attackerOverride then // Check if we're overriding the next creep spawn with an attacker!
+        (Attacker, lastRole)
+    else 
+        (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
 
 let ifEmptyQueue queue f spawn =
     match queue with

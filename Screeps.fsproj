@@ -57,6 +57,9 @@
     <Compile Include="src\action.repair.fs" />
     <Compile Include="src\action.tower.fs" />
     <Compile Include="src\action.guard.fs" />
+    <Compile Include="src\action.attack.fs" />
+    <Compile Include="src\action.claim.fs" />
+    <Compile Include="src\action.pioneer.fs" />
     <Compile Include="src\main.fsx" />
     <None Include="App.config" />
     <None Include="fableconfig.json" />

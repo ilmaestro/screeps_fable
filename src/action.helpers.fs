@@ -247,3 +247,86 @@ let patrol lastresult =
             Success(creep, Moving Defending)
         | None -> Success (creep, Idle)
     | result -> result
+
+let locateRoom targetRoom lastresult =
+    let withinBounds (x, y) =
+        x < 43. && x > 2. && y > 2. && y < 43. 
+    match lastresult with
+    | Success (creep, Idle) ->
+        if creep.room.name = targetRoom.roomName && withinBounds (creep.pos.x, creep.pos.y)
+        then 
+            Success(creep, Idle)
+        else
+            match creep.moveByPath(U3.Case1 (creep.pos.findPathTo(U2.Case1 (roomPosition(targetRoom.x, targetRoom.y, targetRoom.roomName))))) with
+            | r when r = Globals.OK -> Success(creep, Moving Attacking)
+            | r -> Failure r
+    | result -> result
+
+let attackHostileCreeps lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> not (alliesList.Contains(c.owner.username))))) with
+        | Some enemy ->
+            match creep.attack(enemy) with
+            | r when r = Globals.OK -> Success (creep, Defending)
+            | r when r = Globals.ERR_NO_BODYPART ->
+                // TODO: figure out how to fall back on another body
+                Success (creep, Defending)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box enemy)) |> ignore
+                Success (creep, Moving Defending)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let attackHostileStructures lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_HOSTILE_STRUCTURES, filter<Structure>(fun s -> s.structureType <> Globals.STRUCTURE_WALL))) with
+        | Some enemy ->
+            match creep.attack(enemy) with
+            | r when r = Globals.OK -> Success (creep, Defending)
+            | r when r = Globals.ERR_NO_BODYPART ->
+                // TODO: figure out how to fall back on another body
+                Success (creep, Defending)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box enemy)) |> ignore
+                Success (creep, Moving Defending)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
+let attackController lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        let target = creep.room.controller
+        // match (isNull target.owner), target.my with
+        // | false, true -> Success(creep, Idle)
+        // | false, false -> Success(creep, Idle)
+        // | true, _ ->
+        match creep.attackController(creep.room.controller) with
+        | r when r = Globals.OK -> Success(creep, Claiming)
+        | r when r = Globals.ERR_NOT_IN_RANGE ->
+            creep.moveTo(U2.Case2 (box target)) |> ignore
+            Success (creep, Moving Claiming)
+        | r -> Failure r
+    | result -> result
+
+let claimController lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        let target = creep.room.controller
+        // match (isNull target.owner), target.my with
+        // | false, true -> Success(creep, Idle)
+        // | false, false -> Success(creep, Idle)
+        // | true, _ ->
+        match creep.claimController(creep.room.controller) with
+        | r when r = Globals.OK -> Success(creep, Claiming)
+        | r when r = Globals.ERR_NOT_IN_RANGE ->
+            creep.moveTo(U2.Case2 (box target)) |> ignore
+            Success (creep, Moving Claiming)
+        | r when r = Globals.ERR_GCL_NOT_ENOUGH ->
+            // can't claim this yet..
+            Success (creep, Idle)
+        | r -> Failure r
+    | result -> result

@@ -38,6 +38,9 @@ type RoleType =
     | Build
     | Repair
     | Guard
+    | Attacker
+    | Claimer
+    | Pioneer
 
 type CreepAction =
     | Moving of CreepAction // since its not role-specific
@@ -47,6 +50,9 @@ type CreepAction =
     | Building of Position
     | Repairing
     | Defending
+    | Attacking
+    | Claiming
+    | Pioneering
     | Idle
 
 type ActionResult =
@@ -85,9 +91,11 @@ type SpawnMemory = {
 let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
 
 let workerTemplate = seq { yield Globals.WORK; yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
+let claimerTemplate = seq { yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.CLAIM; }
 let guardTemplate = seq { yield Globals.ATTACK; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; }
-
+let banditTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.WORK; yield Globals.ATTACK; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; }
 let alliesList = ResizeArray<string>[| "CaptainSketchy" |]
+let myUsername = "gelletto1138"
 
 // ========
 // Utility Functions
