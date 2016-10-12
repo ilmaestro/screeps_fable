@@ -34,6 +34,11 @@ let private findClosestEnergyContainer pos =
         resourceContainers.Contains(r.structureType) && resourceContainerNotFull r)
     findClosest<Structure> Globals.FIND_STRUCTURES containerFilter pos
 
+let private findClosestTower pos = 
+    let towerFilter = filter<Tower>(fun r ->
+        r.structureType = Globals.STRUCTURE_TOWER && r.energy < r.energyCapacity)
+    findClosest<Structure> Globals.FIND_STRUCTURES towerFilter pos
+
 let private findClosestContainerWithSome pos resourceType =
     let containerFilter = filter<ResourceContainer>(fun r ->
         resourceContainers.Contains(r.structureType) && resourceContainerHasSome r resourceType )
@@ -138,6 +143,20 @@ let transferEnergyToContainers lastresult =
         | None -> Success (creep, Idle)
     | result -> result
 
+let transferEnergyToTowers lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        match findClosestTower creep.pos with
+        | Some tower ->
+            match (creep.transfer(U3.Case3 tower, Globals.RESOURCE_ENERGY)) with
+            | r when r = Globals.OK -> Success (creep, Transferring)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box tower)) |> ignore
+                Success (creep, Moving Transferring)
+            | r -> Failure r
+        | None -> Success (creep, Idle)
+    | result -> result
+
 let build lastresult =
     match lastresult with
     | Success (creep, Idle) ->
@@ -189,9 +208,10 @@ let repairStructures lastresult =
 /// Goal 1: repair walls wth hits under 5000
 /// Goal 2: the minimum hit goes up with the controller level
 let repairWalls lastresult =
-    let minHits = 5000.
     match lastresult with
     | Success (creep, Idle) ->
+        let controllerLevel = creep.room.controller.level
+        let minHits = 5000. * Math.Pow(controllerLevel, 2.)
         match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < minHits && s.structureType = Globals.STRUCTURE_WALL))) with
         | Some s ->
             // printfn "%s attempting quick repair" creep.name
@@ -234,6 +254,16 @@ let healFriends lastresult =
                 Success (creep, Moving Defending)
             | r -> Failure r
         | None -> Success (creep, Idle)
+    | result -> result
+
+let healSelf lastresult =
+    match lastresult with
+    | Success (creep, Idle) ->
+        if creep.hits < creep.hitsMax then
+            match creep.heal(creep) with
+            | r when r = Globals.OK -> Success (creep, Defending)
+            | r -> Failure r
+        else Success (creep, Idle)
     | result -> result
 
 let patrol lastresult =

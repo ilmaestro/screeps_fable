@@ -19,7 +19,8 @@ let run(creep: Creep, memory: CreepMemory) =
     //printfn "%s is defending" creep.name 
     beginAction creep
     |> defendHostiles
-//        |> healFriends
+    |> healFriends
+    |> healSelf
     |> patrol
     |> endAction memory
     //printfn "%s finished defending" creep.name 

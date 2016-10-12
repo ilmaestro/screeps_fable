@@ -40,6 +40,7 @@ let maxParts (energy: float, roleType: RoleType) =
         | Guard -> maximizeParts guardTemplate
         | Attacker -> maximizeParts banditTemplate
         | Claimer -> maximizeParts claimerTemplate
+        | Transport -> maximizeParts transportTemplate
         | _ -> maximizeParts workerTemplate
 
     new ResizeArray<string> (parts)
@@ -61,7 +62,7 @@ let ifEmptyQueue queue f spawn =
 
 let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
     let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
-
+    // TODO: count creeps by spawn
     if maxEnergy && MemoryInGame.get().creepCount < maxCreepsAllowed then
         let (nextRole, nextRoleItem) = getNextRole memory.lastRoleItem
         let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole; lastAction = Idle }

@@ -41,6 +41,7 @@ type RoleType =
     | Attacker
     | Claimer
     | Pioneer
+    | Transport
 
 type CreepAction =
     | Moving of CreepAction // since its not role-specific
@@ -91,9 +92,10 @@ type SpawnMemory = {
 let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
 
 let workerTemplate = seq { yield Globals.WORK; yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
+let transportTemplate = seq { yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
 let claimerTemplate = seq { yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.CLAIM; }
-let guardTemplate = seq { yield Globals.ATTACK; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; }
-let banditTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.WORK; yield Globals.ATTACK; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; }
+let guardTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; yield Globals.ATTACK; yield Globals.HEAL }
+let banditTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.ATTACK; yield Globals.HEAL }
 let alliesList = ResizeArray<string>[| "CaptainSketchy" |]
 let myUsername = "gelletto1138"
 
