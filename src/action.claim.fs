@@ -14,9 +14,10 @@ let primaryTargetRoomName =
         roomName = "E69S52";}
 
 /// Goal 1: head to the target room and attack everything
+// TODO: figure out why the locatRoom function isn't working quite right
 let run(creep: Creep, memory: CreepMemory) =
     beginAction creep
-    |> locateRoom primaryTargetRoomName
+    //|> locateRoom primaryTargetRoomName
     //|> attackController
     |> claimController
     //|> reserveController

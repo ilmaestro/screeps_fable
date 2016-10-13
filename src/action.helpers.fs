@@ -269,10 +269,11 @@ let healSelf lastresult =
 let patrol lastresult =
     match lastresult with
     | Success (creep, Idle) ->
+        let homeSpawn = unbox<Spawn> (Globals.Game.getObjectById(MemoryInCreep.get(creep).spawnId))
         // TODO: patrole the outer .. inner? .. wall.
-        match (getKeys Globals.Game.flags |> List.filter (fun name -> name.StartsWith("Guard")) |> List.tryHead) with
-        | Some flagName ->
-            let flag = unbox<Flag> Globals.Game.flags?(flagName)
+        let flag = getFlags() |> List.filter (fun f -> f.name.StartsWith("Guard") && f.room.name = homeSpawn.room.name) |> List.tryHead
+        match flag with
+        | Some flag ->
             creep.moveTo(U2.Case1 flag.pos) |> ignore
             Success(creep, Moving Defending)
         | None -> Success (creep, Idle)
@@ -280,7 +281,7 @@ let patrol lastresult =
 
 let locateRoom targetRoom lastresult =
     let withinBounds (x, y) =
-        x < 43. && x > 2. && y > 2. && y < 43. 
+        x < 45. && x > 1. && y > 1. && y < 45. 
     match lastresult with
     | Success (creep, Idle) ->
         if creep.room.name = targetRoom.roomName && withinBounds (creep.pos.x, creep.pos.y)

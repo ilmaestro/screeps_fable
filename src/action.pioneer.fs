@@ -24,7 +24,7 @@ let run(creep: Creep, memory: CreepMemory) =
     let build() = 
         beginAction creep
         |> locateRoom primaryTargetRoomName
-        |> build    
+        |> build
         |> repairStructures
         |> upgradeController
         |> endAction memory

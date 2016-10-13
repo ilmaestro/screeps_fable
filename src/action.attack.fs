@@ -14,7 +14,7 @@ let primaryTargetRoomName =
         roomName = "E69S52";}
 
 /// Goal 1: head to the target room and attack everything
-let run(creep: Creep, memory: CreepMemory) =
+let run (creep: Creep, memory: CreepMemory) =
     beginAction creep
     |> locateRoom primaryTargetRoomName
     |> attackHostileCreeps

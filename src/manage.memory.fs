@@ -36,6 +36,12 @@ module MemoryInSpawn =
         spawn.memory?lastRoleItem <- r
         spawn.memory?lastConstructionLevel <- lcl
 
+    let getCreepCount (spawn: Spawn) =
+        getKeys Globals.Game.creeps
+        |> List.map (fun name -> unbox<Creep> (Globals.Game.creeps?(name)))
+        |> List.filter (fun c -> (unbox<string> (c.memory?spawnId)) = spawn.id)
+        |> List.length
+
 module MemoryInCreep =
     (*
         Todos:

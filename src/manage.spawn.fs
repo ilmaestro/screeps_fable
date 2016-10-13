@@ -14,19 +14,14 @@ open Manage.Memory
     - level 1 vs. level2 etc... creeps?
 *)
 let maxCreepsAllowed = 12
-let partCosts = 
-    dict [
-        Globals.MOVE, 50.;
-        Globals.WORK, 100.;
-        Globals.CARRY, 50.;
-        Globals.ATTACK, 80.;
-        Globals.RANGED_ATTACK, 150.;
-        Globals.HEAL, 250.;
-        Globals.CLAIM, 600.;
-        Globals.TOUGH, 10.;
-        ]
-let totalCost parts =
-    parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
+
+let getTemplateByName (name: string) (energy: float) =
+    let key = 
+        creepTemplates.Keys
+        |> Seq.filter (fun (template, cost) -> template.StartsWith(name) && cost <= energy) 
+        |> Seq.sortByDescending (fun (template, cost) -> cost)
+        |> Seq.head
+    creepTemplates.[key]
 
 let maxParts (energy: float, roleType: RoleType) =
     let maximizeParts template =
@@ -37,19 +32,20 @@ let maxParts (energy: float, roleType: RoleType) =
 
     let parts = 
         match roleType with
-        | Guard -> maximizeParts guardTemplate
-        | Attacker -> maximizeParts banditTemplate
-        | Claimer -> maximizeParts claimerTemplate
-        | Transport -> maximizeParts transportTemplate
-        | _ -> maximizeParts workerTemplate
+        | Guard ->      maximizeParts (getTemplateByName "guard" energy)
+        | Attacker ->   maximizeParts (getTemplateByName "attacker" energy)
+        | Claimer ->    (getTemplateByName "claimer" energy)
+        | Transport ->  maximizeParts (getTemplateByName "transport" energy)
+        | _ ->          maximizeParts (getTemplateByName "worker" energy)
 
     new ResizeArray<string> (parts)
 
 // TODO: put these overrides into memory so they can be set in-game.
 let attackerOverride = false
 let getNextRole lastRole =
-//    (Claimer, lastRole)
-//    (Pioneer, lastRole)
+    // (Harvest, lastRole)
+    // (Claimer, lastRole)
+    // (Pioneer, lastRole)
     if attackerOverride then // Check if we're overriding the next creep spawn with an attacker!
         (Attacker, lastRole)
     else 
@@ -62,18 +58,24 @@ let ifEmptyQueue queue f spawn =
 
 let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
     let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
-    // TODO: count creeps by spawn
-    if maxEnergy && MemoryInGame.get().creepCount < maxCreepsAllowed then
+
+    let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
+
+    if maxEnergy && spawnCreepCount < maxCreepsAllowed then
         let (nextRole, nextRoleItem) = getNextRole memory.lastRoleItem
         let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole; lastAction = Idle }
         let parts = maxParts(spawn.room.energyAvailable, nextRole)
-        let result = spawn.createCreep(parts, null, box (creepMemory))
-        match box result with
-        | :? string -> 
-            printfn "Spawned creep name: %s" (unbox<string> result)
+        if (totalCost parts) <= spawn.room.energyAvailable then
+            let result = spawn.createCreep(parts, null, box (creepMemory))
+            match box result with
+            | :? string -> 
+                printfn "Spawned creep name: %s" (unbox<string> result)
+                MemoryInSpawn.set spawn {memory with lastRoleItem = nextRoleItem }
+            | :? int -> printfn "Failed to spawn with code %A" (box result)
+            | _ -> ()
+        else 
             MemoryInSpawn.set spawn {memory with lastRoleItem = nextRoleItem }
-        | :? int -> printfn "Failed to spawn with code %A" (box result)
-        | _ -> ()
+            // skip 
     spawn
 
 let run (spawn: Spawn, memory: SpawnMemory ) =

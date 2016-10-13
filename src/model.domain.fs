@@ -88,14 +88,57 @@ type SpawnMemory = {
     lastConstructionLevel: int;
 }
 
+let partCosts = 
+    dict [
+        Globals.MOVE, 50.;
+        Globals.WORK, 100.;
+        Globals.CARRY, 50.;
+        Globals.ATTACK, 80.;
+        Globals.RANGED_ATTACK, 150.;
+        Globals.HEAL, 250.;
+        Globals.CLAIM, 600.;
+        Globals.TOUGH, 10.;
+        ]
+let totalCost parts =
+    parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
+
 //let roleOrder = [Harvest; Harvest; Build; Build;]
 let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
 
-let workerTemplate = seq { yield Globals.WORK; yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
-let transportTemplate = seq { yield Globals.CARRY; yield Globals.MOVE; yield Globals.MOVE; }
-let claimerTemplate = seq { yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.CLAIM; }
-let guardTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; yield Globals.ATTACK; yield Globals.HEAL }
-let banditTemplate = seq { yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.ATTACK; yield Globals.HEAL }
+// template name, baseCost
+let creepTemplates =
+    dict [
+        ("worker", 250.), seq { 
+            yield Globals.WORK; yield Globals.CARRY; 
+            yield Globals.MOVE; yield Globals.MOVE; };
+        ("transport", 150.), seq { 
+            yield Globals.CARRY; 
+            yield Globals.MOVE; yield Globals.MOVE; };
+        ("claimer", 800.), seq {
+            yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; yield Globals.MOVE; 
+            yield Globals.CLAIM; };
+        ("guardBasic", 200.), seq { 
+            yield Globals.TOUGH; yield Globals.TOUGH; 
+            yield Globals.MOVE; yield Globals.MOVE; 
+            yield Globals.ATTACK; };
+        ("guardAdvanced", 570.), seq { 
+            yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH;
+            yield Globals.MOVE; yield Globals.MOVE;
+            yield Globals.ATTACK;
+            yield Globals.MOVE; yield Globals.MOVE; 
+            yield Globals.HEAL; };
+        ("attacker", 570.), seq { 
+            yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH;
+            yield Globals.MOVE; yield Globals.MOVE;
+            yield Globals.ATTACK;
+            yield Globals.MOVE; yield Globals.MOVE; 
+            yield Globals.HEAL; };
+        ("archer", 300.), seq { 
+            yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH; yield Globals.TOUGH;
+            yield Globals.MOVE; yield Globals.MOVE;
+            yield Globals.RANGED_ATTACK; };
+    ]
+
 let alliesList = ResizeArray<string>[| "CaptainSketchy" |]
 let myUsername = "gelletto1138"
 
@@ -112,3 +155,6 @@ let filter<'T> (x: 'T -> bool) =
 
 [<Emit("Object.keys($0)")>]
 let getKeys obj: string list = jsNative
+
+let getFlags () =
+    getKeys Globals.Game.flags |> List.map (fun flagName -> unbox<Flag> Globals.Game.flags?(flagName)) 
