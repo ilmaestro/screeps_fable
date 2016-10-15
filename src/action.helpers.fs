@@ -15,8 +15,12 @@ let private resourceContainers = new ResizeArray<string>[|Globals.STRUCTURE_CONT
 [<Emit("_.sum($0.store) < $0.storeCapacity")>]
 let private resourceContainerNotFull (r: ResourceContainer): bool = jsNative
 
-let private resourceContainerHasSome (r: ResourceContainer) resourceType =
-    r.store.[resourceType] > 0.
+let private resourceContainerHasSome (r: StructureContainer) resourceType =
+    let resource =
+        getKeys r.store 
+        |> List.map (fun key -> (key, unbox<float> (r.store?(key)))) 
+        |> List.filter (fun (key, amount) -> key = resourceType && amount > 0.)
+    not (List.isEmpty resource)
 
 let private findClosest<'T> (find: float) (f: obj) (pos: RoomPosition) =
     Some (pos.findClosestByPath<'T>(find, f))
@@ -40,7 +44,7 @@ let private findClosestTower pos =
     findClosest<Structure> Globals.FIND_STRUCTURES towerFilter pos
 
 let private findClosestContainerWithSome pos resourceType =
-    let containerFilter = filter<ResourceContainer>(fun r ->
+    let containerFilter = filter<StructureContainer>(fun r ->
         resourceContainers.Contains(r.structureType) && resourceContainerHasSome r resourceType )
     findClosest<Structure> Globals.FIND_STRUCTURES containerFilter pos
 

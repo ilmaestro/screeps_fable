@@ -15,6 +15,7 @@ let run(creep: Creep, memory: CreepMemory) =
     let harvest() =
         beginAction creep
         |> pickupDroppedResources
+        //|> withdrawEnergyFromContainer
         |> harvestEnergySources
         |> endAction memory
 

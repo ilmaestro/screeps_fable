@@ -14,6 +14,7 @@
 #load "./action.claim.fs"
 #load "./action.pioneer.fs"
 #load "./action.transport.fs"
+#load "./action.tower.fs"
 
 open System
 open System.Collections.Generic
@@ -49,11 +50,17 @@ let spawnDispatcher name =
         SpawnManager.run(spawn, Manage.Memory.MemoryInSpawn.get spawn)
     | None -> ()
 
+let roomDispatcher name = 
+    match unbox Globals.Game.rooms?(name) with
+    | Some room -> Action.Tower.run (room)
+    | None -> ()
+
 let loop() =
     Manage.Memory.GameTick.checkMemory()
-    Manage.Construction.GameTick.run (Manage.Memory.MemoryInGame.get())
+    //Manage.Construction.GameTick.run (Manage.Memory.MemoryInGame.get())
     getKeys Globals.Game.spawns |> List.iter spawnDispatcher
     getKeys Globals.Game.creeps |> List.iter creepDispatcher
+    getKeys Globals.Game.rooms |> List.iter roomDispatcher 
 
 // Init the game memory if necessary
 match unbox Globals.Memory?game with

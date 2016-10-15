@@ -10,7 +10,7 @@ open Action.Helpers
 let primaryTargetRoomName = 
     { x = 40.; 
         y = 14.;
-        roomName = "E69S52";}
+        roomName = "E69S51";}
 
 /// Goal 1: head to the target room and start building
 let run(creep: Creep, memory: CreepMemory) =
@@ -18,6 +18,7 @@ let run(creep: Creep, memory: CreepMemory) =
         beginAction creep
         |> locateRoom primaryTargetRoomName
         |> pickupDroppedResources
+        |> withdrawEnergyFromContainer
         |> harvestEnergySources
         |> endAction memory
 

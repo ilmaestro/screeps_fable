@@ -26,6 +26,6 @@ let rangedHeal lastCommand =
             | _ -> Action tower
         | None -> NoAction tower
 
-let findTowers (room: Room) =
+let run (room: Room) =
     room.find<StructureTower>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.structureType = Globals.STRUCTURE_TOWER))
     |> Seq.iter (rangedAttack >> rangedHeal >> ignore)

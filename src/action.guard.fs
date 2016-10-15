@@ -19,9 +19,9 @@ open Action.Helpers
 let run(creep: Creep, memory: CreepMemory) =
     //printfn "%s is defending" creep.name 
     beginAction creep
+    |> healSelf
     |> defendHostiles
     //|> healFriends
-    //|> healSelf
     |> patrol
     |> endAction memory
     //printfn "%s finished defending" creep.name 

@@ -61,8 +61,10 @@ let checkCreeps (memory: SpawnMemory) (spawn: Spawn) =
 
     let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
 
-    if maxEnergy && spawnCreepCount < maxCreepsAllowed then
-        let (nextRole, nextRoleItem) = getNextRole memory.lastRoleItem
+    if (maxEnergy && spawnCreepCount < maxCreepsAllowed) || spawnCreepCount = 0 then
+        let (nextRole, nextRoleItem) = 
+            if spawnCreepCount = 0 then (Harvest, memory.lastRoleItem)
+            else getNextRole memory.lastRoleItem
         let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole; lastAction = Idle }
         let parts = maxParts(spawn.room.energyAvailable, nextRole)
         if (totalCost parts) <= spawn.room.energyAvailable then
