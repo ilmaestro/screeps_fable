@@ -12,10 +12,14 @@ open Action.Helpers
 *)
 
 let run(creep: Creep, memory: CreepMemory) =
+    let ifEmergency condition action lastresult =
+        if condition() then (action lastresult)
+        else lastresult
+
     let harvest() =
         beginAction creep
         |> pickupDroppedResources
-        //|> withdrawEnergyFromContainer
+        // |> ifEmergency (fun _ -> true) withdrawEnergyFromContainer
         |> harvestEnergySources
         |> endAction memory
 

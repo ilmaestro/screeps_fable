@@ -18,24 +18,20 @@ open Manage.Memory
 *)
 
 let run(creep: Creep, memory: CreepMemory) =
-    match memory.actionFlag with
-    | Some flagName ->
-        let flag = unbox<Flag>(Globals.Game.flags?(flagName))
-        let flagMem = MemoryInFlag.get flag
+    let relocate lastresult =
+        match memory.actionFlag with
+        | Some flagName ->
+            let flag = unbox<Flag>(Globals.Game.flags?(flagName))
+            let flagMem = MemoryInFlag.get flag
+            locateFlag flag flagMem.actionRadius lastresult
+        | None -> 
+            patrol lastresult
 
-        beginAction creep
-        |> healSelf
-        |> defendHostiles
-        //|> healFriends
-        |> locateFlag flag flagMem.actionRadius
-        |> endAction memory
-    | None ->
-        //printfn "%s is defending" creep.name 
-        beginAction creep
-        |> healSelf
-        |> defendHostiles
-        //|> healFriends
-        |> patrol
-        |> endAction memory
-        //printfn "%s finished defending" creep.name 
+    beginAction creep
+    |> healSelf
+    |> defendHostiles
+    //|> healFriends
+    |> relocate
+    |> endAction memory
+
     

@@ -112,7 +112,10 @@ let checkFlags (lastResult: SpawnActionResult)  =
     match lastResult with
     | Pass (spawn, spawnMemory) ->
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
-        if maxEnergy then
+        let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
+        let halfCreepCount = maxCreepsAllowed / 2
+        // only allow flags if we're at half our max creeps
+        if maxEnergy && spawnCreepCount > halfCreepCount then
             // get flags for this spawn that need creeps
             match findFlag spawn.id with
             | Some (flag, flagMemory) ->

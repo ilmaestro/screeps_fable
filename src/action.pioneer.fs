@@ -4,19 +4,25 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Model.Domain
-open Manage.Memory.MemoryInCreep
+open Manage.Memory
 open Action.Helpers
 
-let primaryTargetRoomName = 
-    { x = 40.; 
-        y = 14.;
-        roomName = "E69S51";}
 
 /// Goal 1: head to the target room and start building
 let run(creep: Creep, memory: CreepMemory) =
+    // if creep is assigned a flag, relocate to the flag location, otherwise pass
+    let relocate lastresult =
+        match memory.actionFlag with
+        | Some flagName ->
+            let flag = unbox<Flag>(Globals.Game.flags?(flagName))
+            let flagMem = MemoryInFlag.get flag
+            locateFlag flag flagMem.actionRadius lastresult
+        | None -> 
+            lastresult
+
     let harvest() =
         beginAction creep
-        |> locateRoom primaryTargetRoomName
+        |> relocate
         |> pickupDroppedResources
         |> withdrawEnergyFromContainer
         |> harvestEnergySources
@@ -24,13 +30,14 @@ let run(creep: Creep, memory: CreepMemory) =
 
     let build() = 
         beginAction creep
-        |> locateRoom primaryTargetRoomName
+        |> relocate
         |> build
-        |> repairStructures
+        //|> repairStructures
+        |> transferEnergyToStructures
         |> upgradeController
         |> endAction memory
 
-    match ((creepEnergy creep), memory.lastAction) with
+    match ((MemoryInCreep.creepEnergy creep), memory.lastAction) with
     | (Empty, _)                    -> harvest()
     | (Full, _)                     -> build()
     | (Energy _, lastAction)        ->
@@ -40,5 +47,7 @@ let run(creep: Creep, memory: CreepMemory) =
         | Moving action ->
             match action with
             | Building _ -> build()
+            | Transferring -> build()
             | _ -> harvest()
         | _ -> build()
+    

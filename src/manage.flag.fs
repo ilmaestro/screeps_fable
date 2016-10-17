@@ -13,6 +13,7 @@ Goals:
         * ActionFlag_Attacker_2_5_SonOfTorgo -> send two attackers from SonOfTorgo to this location within 5 squares
         * ResourceFlag_Harvest_1_2_BorkTest -> send one harvester from BorkTest to this location within 2 squares 
         * GuardHereWithOneGuard_Guard_1_2_BorkTest -> go guard!
+        * Resurrect_Pioneer_1_20_SonOfTorgo -> help to pioneer within a 20 square radius
     - params:
         - role
         - count
