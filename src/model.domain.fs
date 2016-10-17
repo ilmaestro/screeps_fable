@@ -42,6 +42,7 @@ type RoleType =
     | Claimer
     | Pioneer
     | Transport
+    | NoRole
 
 type CreepAction =
     | Moving of CreepAction // since its not role-specific
@@ -56,9 +57,14 @@ type CreepAction =
     | Pioneering
     | Idle
 
-type ActionResult =
-    | Success of Creep * CreepAction
-    | Failure of float
+// type ActionResult =
+//     | Success of Creep * CreepAction
+//     | Failure of float
+
+type ActionResult<'T, 'U> =
+    | Success of 'T
+    | Failure of 'U
+    | Pass of 'T
 
 type ConstructionItemStatus =
     | Unconstructed
@@ -73,6 +79,7 @@ type ConstructionItem = {
 type CreepMemory = {
     controllerId: string;
     spawnId: string;
+    actionFlag: string option;
     role: RoleType;
     lastAction: CreepAction;
 }
@@ -87,6 +94,20 @@ type SpawnMemory = {
     lastRoleItem: int;
     lastConstructionLevel: int;
 }
+
+type FlagMemory = {
+    actionRole: RoleType;
+    actionCreepCount: int;
+    actionRadius: float;
+    actionSpawnId: string;
+    currentCreepCount: int;
+}
+
+type ActionHandler<'T, 'U> = ActionResult<'T,'U> -> ActionResult<'T,'U>
+
+type CreepActionResult = ActionResult<Creep * CreepAction, float>
+type CreepActionHandler = ActionHandler<Creep * CreepAction, float>
+type SpawnActionResult = ActionResult<Spawn * SpawnMemory, float>
 
 let partCosts = 
     dict [
@@ -103,7 +124,7 @@ let totalCost parts =
     parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
 
 //let roleOrder = [Harvest; Harvest; Build; Build;]
-let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair; Guard;]
+let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair;]
 
 // template name, baseCost
 let creepTemplates =
@@ -145,6 +166,20 @@ let myUsername = "gelletto1138"
 // ========
 // Utility Functions
 // =================
+let roleFromString roleName =
+    match roleName with
+    | "Harvest" -> Some Harvest
+    | "Upgrade" -> Some Upgrade
+    | "Build" -> Some Build
+    | "Repair" -> Some Repair
+    | "Guard" -> Some Guard
+    | "Attacker" -> Some Attacker
+    | "Claimer" -> Some Claimer
+    | "Pioneer" -> Some Pioneer
+    | "Transport" -> Some Transport
+    | "NoRole" -> Some NoRole
+    | _ -> None
+
 [<Emit("new RoomPosition($0, $1, $2)")>]
 let roomPosition (x: float, y: float, roomName: string): RoomPosition = jsNative
 
@@ -153,8 +188,9 @@ let filter<'T> (x: 'T -> bool) =
         "filter" ==> x
     ]
 
-[<Emit("Object.keys($0)")>]
+[<Emit("(!!$0 && Object.keys($0)) || []")>]
 let getKeys obj: string list = jsNative
 
 let getFlags () =
     getKeys Globals.Game.flags |> List.map (fun flagName -> unbox<Flag> Globals.Game.flags?(flagName)) 
+

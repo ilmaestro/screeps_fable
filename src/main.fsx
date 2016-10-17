@@ -4,6 +4,7 @@
 #load "./manage.memory.fs"
 #load "./manage.construction.fs"
 #load "./manage.spawn.fs"
+#load "./manage.flag.fs"
 #load "./action.helpers.fs"
 #load "./action.harvest.fs"
 #load "./action.upgrade.fs"
@@ -40,6 +41,7 @@ let creepDispatcher name =
             | Claimer -> Action.Claim.run
             | Pioneer -> Action.Pioneer.run
             | Transport -> Action.Transport.run
+            | NoRole -> ignore
         // printfn "dispatching %s to %A" creep.name memory.role
         action(creep, memory)
     | None -> ()
@@ -55,12 +57,20 @@ let roomDispatcher name =
     | Some room -> Action.Tower.run (room)
     | None -> ()
 
+let flagDispatcher creepKeys name =
+    match unbox Globals.Game.flags?(name) with
+    | Some flag -> Manage.Flag.run creepKeys flag
+    | None -> ()
+
 let loop() =
     Manage.Memory.GameTick.checkMemory()
     //Manage.Construction.GameTick.run (Manage.Memory.MemoryInGame.get())
+    let creepKeys = getKeys Globals.Game.creeps
+    getKeys Globals.Game.flags |> List.iter (flagDispatcher creepKeys)
     getKeys Globals.Game.spawns |> List.iter spawnDispatcher
-    getKeys Globals.Game.creeps |> List.iter creepDispatcher
+    creepKeys |> List.iter creepDispatcher
     getKeys Globals.Game.rooms |> List.iter roomDispatcher 
+     
 
 // Init the game memory if necessary
 match unbox Globals.Memory?game with

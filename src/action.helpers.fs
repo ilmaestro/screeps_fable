@@ -52,21 +52,22 @@ let private findClosestContainerWithSome pos resourceType =
     Public Methods
 *)
 
-let beginAction (creep: Creep) =
+let beginAction (creep: Creep): CreepActionResult =
     //printfn "%s beginning action.."
-    Success (creep, Idle)
+    Pass (creep, Idle)
 
-let endAction memory lastresult =
+let endAction memory (lastresult: CreepActionResult) =
     match lastresult with
     | Success (creep, action) ->
         // printfn "%s is %A " creep.name action 
         MemoryInCreep.set creep { memory with lastAction = action }
+    | Pass (creep, action) -> ()
     | Failure r -> printfn "Failure code reported: %f" r
 
 (* You can ALWAYS upgrade your controller *)
-let upgradeController lastresult =
+let upgradeController (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         let memory = (MemoryInCreep.get creep)
         let controller = unbox<Controller> (Globals.Game.getObjectById(memory.controllerId))
         match (creep.upgradeController(controller)) with
@@ -77,9 +78,9 @@ let upgradeController lastresult =
         | r -> Failure r
     | result -> result
 
-let pickupDroppedResources lastresult =
+let pickupDroppedResources (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match findClosest<Resource> Globals.FIND_DROPPED_RESOURCES (filter<Source>(fun _ -> true)) creep.pos with
         | Some target ->
             match creep.pickup(target) with
@@ -88,12 +89,12 @@ let pickupDroppedResources lastresult =
                 creep.moveTo(U2.Case1 target.pos) |> ignore
                 Success (creep, Moving Harvesting)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let harvestEnergySources lastresult =
+let harvestEnergySources (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match findClosestActiveSources creep.pos with
         | Some target ->
             match creep.harvest(U2.Case1 target) with
@@ -102,12 +103,12 @@ let harvestEnergySources lastresult =
                 creep.moveTo(U2.Case1 target.pos) |> ignore
                 Success (creep, Moving Harvesting)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let withdrawEnergyFromContainer lastresult =
+let withdrawEnergyFromContainer (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match (findClosestContainerWithSome creep.pos Globals.RESOURCE_ENERGY) with
         | Some target ->
             match creep.withdraw(target, Globals.RESOURCE_ENERGY) with
@@ -116,12 +117,12 @@ let withdrawEnergyFromContainer lastresult =
                 creep.moveTo(U2.Case1 target.pos) |> ignore
                 Success (creep, Moving Harvesting)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let transferEnergyToStructures lastresult =
+let transferEnergyToStructures (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match findClosestEnergyStructure creep.pos with
         | Some structure ->
             match (creep.transfer(U3.Case3 structure, Globals.RESOURCE_ENERGY)) with
@@ -130,12 +131,12 @@ let transferEnergyToStructures lastresult =
                 creep.moveTo(U2.Case2 (box structure)) |> ignore
                 Success (creep, Moving Transferring)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let transferEnergyToContainers lastresult =
+let transferEnergyToContainers (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match findClosestEnergyContainer creep.pos with
         | Some structure ->
             match (creep.transfer(U3.Case3 structure, Globals.RESOURCE_ENERGY)) with
@@ -144,12 +145,12 @@ let transferEnergyToContainers lastresult =
                 creep.moveTo(U2.Case2 (box structure)) |> ignore
                 Success (creep, Moving Transferring)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let transferEnergyToTowers lastresult =
+let transferEnergyToTowers (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match findClosestTower creep.pos with
         | Some tower ->
             match (creep.transfer(U3.Case3 tower, Globals.RESOURCE_ENERGY)) with
@@ -158,12 +159,12 @@ let transferEnergyToTowers lastresult =
                 creep.moveTo(U2.Case2 (box tower)) |> ignore
                 Success (creep, Moving Transferring)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let build lastresult =
+let build (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match creep.pos.findClosestByPath(Globals.FIND_CONSTRUCTION_SITES) with
         | Some target ->
             match (creep.build(target)) with
@@ -172,13 +173,13 @@ let build lastresult =
                 creep.moveTo(U2.Case2 (box target)) |> ignore
                 Success (creep, Moving (Building ({ x = target.pos.x; y = target.pos.y; roomName = target.pos.roomName; })))
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
 (* TODO: fix this so its a valid CreepAction function *)
-let quickRepair lastresult =
+let quickRepair (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Building pos) ->
+    | Pass (creep, Building pos) ->
         let structure = 
             creep.room.lookForAt<Structure>(Globals.LOOK_STRUCTURES, (U2.Case1 (roomPosition(pos.x, pos.y, pos.roomName))))
             |> Seq.toList
@@ -191,12 +192,12 @@ let quickRepair lastresult =
             match (creep.repair(U2.Case2 s)) with
             | r when r = Globals.OK -> Success (creep, Building (pos))
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let repairStructures lastresult =
+let repairStructures (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < s.hitsMax && s.structureType <> Globals.STRUCTURE_WALL))) with
         | Some s ->
             // printfn "%s attempting quick repair" creep.name
@@ -206,14 +207,14 @@ let repairStructures lastresult =
                 creep.moveTo(U2.Case2 (box s)) |> ignore
                 Success (creep, Moving (Repairing))
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
 /// Goal 1: repair walls wth hits under 5000
 /// Goal 2: the minimum hit goes up with the controller level
-let repairWalls lastresult =
+let repairWalls (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         let controllerLevel = creep.room.controller.level
         let minHits = 5000. * Math.Pow(controllerLevel, 2.)
         match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < minHits && s.structureType = Globals.STRUCTURE_WALL))) with
@@ -225,13 +226,13 @@ let repairWalls lastresult =
                 creep.moveTo(U2.Case2 (box s)) |> ignore
                 Success (creep, Moving (Repairing))
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
 
-let defendHostiles lastresult =
+let defendHostiles (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> not (alliesList.Contains(c.owner.username))))) with
         | Some enemy ->
             match creep.attack(enemy) with
@@ -243,12 +244,12 @@ let defendHostiles lastresult =
                 creep.moveTo(U2.Case2 (box enemy)) |> ignore
                 Success (creep, Moving Defending)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let healFriends lastresult =
+let healFriends (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match unbox (creep.pos.findClosestByRange<Creep>(Globals.FIND_MY_CREEPS), filter<Creep>(fun c -> c.hits < c.hitsMax)) with
         | Some friend ->
             match creep.heal(friend) with
@@ -257,22 +258,22 @@ let healFriends lastresult =
                 creep.moveTo(U2.Case1 friend.pos) |> ignore
                 Success (creep, Moving Defending)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let healSelf lastresult =
+let healSelf (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         if creep.hits < creep.hitsMax then
             match creep.heal(creep) with
             | r when r = Globals.OK -> Success (creep, Defending)
             | r -> Failure r
-        else Success (creep, Idle)
+        else Pass (creep, Idle)
     | result -> result
 
-let patrol lastresult =
+let patrol (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         let homeSpawn = unbox<Spawn> (Globals.Game.getObjectById(MemoryInCreep.get(creep).spawnId))
         // TODO: patrole the outer .. inner? .. wall.
         let flag = getFlags() |> List.filter (fun f -> f.name.StartsWith("Guard") && f.room.name = homeSpawn.room.name) |> List.tryHead
@@ -280,26 +281,38 @@ let patrol lastresult =
         | Some flag ->
             creep.moveTo(U2.Case1 flag.pos) |> ignore
             Success(creep, Moving Defending)
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let locateRoom targetRoom lastresult =
+let locateFlag (targetFlag: Flag) (radius: float) (lastresult: CreepActionResult) =
+    match lastresult with
+    | Pass (creep, Idle) ->
+        let range = creep.pos.getRangeTo(U2.Case1 targetFlag.pos)
+        if range > radius then
+            match creep.moveTo(U2.Case1 targetFlag.pos) with
+            | r when r = Globals.OK -> Success(creep, Moving Idle)
+            | r -> Failure r
+        else
+            Pass (creep, Idle)
+    | result -> result
+
+let locateRoom targetRoom (lastresult: CreepActionResult) =
     let withinBounds (x, y) =
         x < 45. && x > 1. && y > 1. && y < 45. 
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         if creep.room.name = targetRoom.roomName && withinBounds (creep.pos.x, creep.pos.y)
         then 
-            Success(creep, Idle)
+            Pass(creep, Idle)
         else
             match creep.moveByPath(U3.Case1 (creep.pos.findPathTo(U2.Case1 (roomPosition(targetRoom.x, targetRoom.y, targetRoom.roomName))))) with
             | r when r = Globals.OK -> Success(creep, Moving Attacking)
             | r -> Failure r
     | result -> result
 
-let attackHostileCreeps lastresult =
+let attackHostileCreeps (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match unbox (creep.pos.findClosestByPath<Creep>(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> not (alliesList.Contains(c.owner.username))))) with
         | Some enemy ->
             match creep.attack(enemy) with
@@ -311,12 +324,12 @@ let attackHostileCreeps lastresult =
                 creep.moveTo(U2.Case2 (box enemy)) |> ignore
                 Success (creep, Moving Defending)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let attackHostileStructures lastresult =
+let attackHostileStructures (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_HOSTILE_STRUCTURES, filter<Structure>(fun s -> s.structureType <> Globals.STRUCTURE_WALL))) with
         | Some enemy ->
             match creep.attack(enemy) with
@@ -328,12 +341,12 @@ let attackHostileStructures lastresult =
                 creep.moveTo(U2.Case2 (box enemy)) |> ignore
                 Success (creep, Moving Defending)
             | r -> Failure r
-        | None -> Success (creep, Idle)
+        | None -> Pass (creep, Idle)
     | result -> result
 
-let attackController lastresult =
+let attackController (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         let target = creep.room.controller
         // match (isNull target.owner), target.my with
         // | false, true -> Success(creep, Idle)
@@ -347,9 +360,9 @@ let attackController lastresult =
         | r -> Failure r
     | result -> result
 
-let claimController lastresult =
+let claimController (lastresult: CreepActionResult) =
     match lastresult with
-    | Success (creep, Idle) ->
+    | Pass (creep, Idle) ->
         let target = creep.room.controller
         // match (isNull target.owner), target.my with
         // | false, true -> Success(creep, Idle)
@@ -362,6 +375,6 @@ let claimController lastresult =
             Success (creep, Moving Claiming)
         | r when r = Globals.ERR_GCL_NOT_ENOUGH ->
             // can't claim this yet..
-            Success (creep, Idle)
+            Pass (creep, Idle)
         | r -> Failure r
     | result -> result

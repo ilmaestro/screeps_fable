@@ -15,6 +15,16 @@ open Manage.Memory
 *)
 let maxCreepsAllowed = 12
 
+
+let beginSpawnAction (spawn: Spawn, spawnMemory: SpawnMemory ): SpawnActionResult = 
+    Pass (spawn, spawnMemory)
+
+let endSpawnAction (lastResult: SpawnActionResult) =
+    match lastResult with
+    | Success _ -> ()
+    | Pass _ -> ()
+    | Failure r -> printfn "Spawn action failure code reported: %f" r
+
 let getTemplateByName (name: string) (energy: float) =
     let key = 
         creepTemplates.Keys
@@ -56,32 +66,69 @@ let ifEmptyQueue queue f spawn =
     | [] -> f spawn
     | _ -> spawn
 
-let checkCreeps (memory: SpawnMemory) (spawn: Spawn) = 
-    let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
+let spawnCreep (spawn: Spawn) parts creepMemory =
+    if (totalCost parts) <= spawn.room.energyAvailable then
+        let result = spawn.createCreep(parts, null, box (creepMemory))
+        match box result with
+        | :? string -> 
+            printfn "Spawned creep name: %s" (unbox<string> result)
+            
+        | :? int -> printfn "Failed to spawn with code %A" (box result)
+        | _ -> ()
+    else 
+        ()
+        // skip
 
-    let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
+let checkCreeps (lastResult: SpawnActionResult)  =
+    match lastResult with
+    | Pass (spawn, spawnMemory) ->
+        let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
+        let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
 
-    if (maxEnergy && spawnCreepCount < maxCreepsAllowed) || spawnCreepCount = 0 then
-        let (nextRole, nextRoleItem) = 
-            if spawnCreepCount = 0 then (Harvest, memory.lastRoleItem)
-            else getNextRole memory.lastRoleItem
-        let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; role = nextRole; lastAction = Idle }
-        let parts = maxParts(spawn.room.energyAvailable, nextRole)
-        if (totalCost parts) <= spawn.room.energyAvailable then
-            let result = spawn.createCreep(parts, null, box (creepMemory))
-            match box result with
-            | :? string -> 
-                printfn "Spawned creep name: %s" (unbox<string> result)
-                MemoryInSpawn.set spawn {memory with lastRoleItem = nextRoleItem }
-            | :? int -> printfn "Failed to spawn with code %A" (box result)
-            | _ -> ()
+        if (maxEnergy && spawnCreepCount < maxCreepsAllowed) || spawnCreepCount = 0 then
+            let (nextRole, nextRoleItem) = 
+                if spawnCreepCount = 0 then (Harvest, spawnMemory.lastRoleItem)
+                else getNextRole spawnMemory.lastRoleItem
+            let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; actionFlag = None; role = nextRole; lastAction = Idle; }
+            let parts = maxParts(spawn.room.energyAvailable, nextRole)
+            spawnCreep spawn parts creepMemory
+            MemoryInSpawn.set spawn {spawnMemory with lastRoleItem = nextRoleItem }
+            Success (spawn, spawnMemory)
         else 
-            MemoryInSpawn.set spawn {memory with lastRoleItem = nextRoleItem }
-            // skip 
-    spawn
+            Pass (spawn, spawnMemory)
+    | result -> result
+
+// Find flags assigned to a given spawn who's creep counts are less than the designated count
+let findFlag spawnId = 
+    (getKeys Globals.Game.flags)
+    |> List.map (fun key -> 
+        let flag = unbox<Flag>(Globals.Game.flags?(key))
+        let memory = MemoryInFlag.get flag
+        (flag, memory))
+    |> List.filter (fun (f,m) -> m.actionSpawnId = spawnId && m.currentCreepCount < m.actionCreepCount)
+    |> List.tryHead
+
+let checkFlags (lastResult: SpawnActionResult)  =
+    match lastResult with
+    | Pass (spawn, spawnMemory) ->
+        let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
+        if maxEnergy then
+            // get flags for this spawn that need creeps
+            match findFlag spawn.id with
+            | Some (flag, flagMemory) ->
+                let creepRole = flagMemory.actionRole
+                let creepMemory = { controllerId = spawn.room.controller.id; spawnId = spawn.id; actionFlag = Some flag.name; role = creepRole; lastAction = Idle; }
+                let parts = maxParts(spawn.room.energyAvailable, creepRole)
+                spawnCreep spawn parts creepMemory
+                Success (spawn, spawnMemory)
+            | None -> Pass (spawn, spawnMemory)
+        else Pass (spawn, spawnMemory)   
+    | result -> result
 
 let run (spawn: Spawn, memory: SpawnMemory ) =
-    spawn
-    |> checkCreeps memory
-    |> ifEmptyQueue (MemoryInGame.get().constructionQueue) (Manage.Construction.GameTick.checkConstruction memory)
-    |> ignore
+    beginSpawnAction (spawn, memory)
+    |> checkFlags
+    |> checkCreeps
+    //TODO: Move memory to Spawn... 
+    //|> ifEmptyQueue (MemoryInGame.get().constructionQueue) (Manage.Construction.GameTick.checkConstruction memory)
+    |> endSpawnAction

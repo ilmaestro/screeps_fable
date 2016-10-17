@@ -11,6 +11,10 @@ let private getMemoryObject (object) (name: string) defaultValue =
     | Some result -> box result
     | None -> box defaultValue
 
+let private logDelete name =
+    printfn "deleting %s" name
+    name
+
 module MemoryInGame =
     let get() =
         let creepCount = unbox<int> (getMemoryObject (Globals.Memory.Item("game")) "creepCount" 0)
@@ -42,6 +46,41 @@ module MemoryInSpawn =
         |> List.filter (fun c -> (unbox<string> (c.memory?spawnId)) = spawn.id)
         |> List.length
 
+    [<Emit("delete Memory.spawns[$0]")>]
+    let deleteSpawnMemory name = jsNative
+    let clearDeadSpawnMems (spawnKeys: ResizeArray<string>) =
+        // check for dead spawn memories..
+        getKeys Globals.Memory.spawns
+        |> List.filter (spawnKeys.Contains >> not)
+        |> List.iter (logDelete >> deleteSpawnMemory)
+        spawnKeys
+
+module MemoryInFlag =
+    let get (flag: Flag) = 
+        { 
+            actionRole = unbox<RoleType> (getMemoryObject flag.memory "actionRole" NoRole)
+            actionCreepCount = unbox<int> (getMemoryObject flag.memory "actionCreepCount" 0)
+            actionRadius = unbox<float> (getMemoryObject flag.memory "actionRadius" 0.)
+            actionSpawnId = unbox<string> (getMemoryObject flag.memory "actionSpawnId" "")
+            currentCreepCount = unbox<int> (getMemoryObject flag.memory "currentCreepCount" 0)
+            }
+    
+    let set (flag: Flag) (memory: FlagMemory) =
+        flag.memory?actionRole <- memory.actionRole
+        flag.memory?actionCreepCount <- memory.actionCreepCount
+        flag.memory?actionRadius <- memory.actionRadius
+        flag.memory?actionSpawnId <- memory.actionSpawnId
+        flag.memory?currentCreepCount <- memory.currentCreepCount
+
+    [<Emit("delete Memory.flags[$0]")>]
+    let deleteFlagMemory name = jsNative
+    let clearDeadFlagMems (flagKeys: ResizeArray<string>) =
+        // check for dead flag memories..
+        getKeys Globals.Memory.flags
+        |> List.filter (flagKeys.Contains >> not)
+        |> List.iter (logDelete >> deleteFlagMemory)
+        flagKeys
+
 module MemoryInCreep =
     (*
         Todos:
@@ -54,9 +93,11 @@ module MemoryInCreep =
         let spawnId = unbox<string> (getMemoryObject creep.memory "spawnId" "")
         let role = unbox<RoleType> (getMemoryObject creep.memory "role" Harvest)
         let lastAction = unbox<CreepAction> (getMemoryObject creep.memory "lastAction" Idle)
+        let actionFlag = unbox<string option> (getMemoryObject creep.memory "actionFlag" None)
         {
             controllerId = controllerId
             spawnId = spawnId
+            actionFlag = actionFlag
             role = role
             lastAction = lastAction }
 
@@ -66,6 +107,7 @@ module MemoryInCreep =
         creep.memory?spawnId <- s
         creep.memory?role <- r
         creep.memory?lastAction <- la
+        creep.memory?actionFlag <- memory.actionFlag
 
     let creepEnergy (creep: Creep) =
         match creep.carry.energy with
@@ -75,11 +117,6 @@ module MemoryInCreep =
 
     [<Emit("delete Memory.creeps[$0]")>]
     let deleteCreepMemory name = jsNative
-
-    let logDelete name =
-        printfn "deleting %s" name
-        name
-
     let clearDeadCreepMems (creepKeys: ResizeArray<string>) =
         // check for dead creep memories..
         getKeys Globals.Memory.creeps
@@ -118,8 +155,12 @@ module ConstructionMemory =
 
 module GameTick =
     open MemoryInCreep
+    open MemoryInSpawn
+    open MemoryInFlag
     let checkMemory () =
         (new ResizeArray<string> (getKeys Globals.Game.creeps))
         |> clearDeadCreepMems
         |> setCurrentCreepCount
         |> ignore
+        clearDeadSpawnMems (new ResizeArray<string> (getKeys Globals.Game.spawns)) |> ignore
+        clearDeadFlagMems (new ResizeArray<string> (getKeys Globals.Game.flags)) |> ignore
