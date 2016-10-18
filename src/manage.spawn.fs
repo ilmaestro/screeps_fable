@@ -15,7 +15,6 @@ open Manage.Memory
 *)
 let maxCreepsAllowed = 12
 
-
 let beginSpawnAction (spawn: Spawn, spawnMemory: SpawnMemory ): SpawnActionResult = 
     Pass (spawn, spawnMemory)
 
@@ -25,6 +24,16 @@ let endSpawnAction (lastResult: SpawnActionResult) =
     | Pass _ -> ()
     | Failure r -> printfn "Spawn action failure code reported: %f" r
 
+// Find flags assigned to a given spawn who's creep counts are less than the designated count
+let findFlag spawnId = 
+    (getKeys Globals.Game.flags)
+    |> List.map (fun key -> 
+        let flag = unbox<Flag>(Globals.Game.flags?(key))
+        let memory = MemoryInFlag.get flag
+        (flag, memory))
+    |> List.filter (fun (f,m) -> m.actionSpawnId = spawnId && m.currentCreepCount < m.actionCreepCount)
+    |> List.tryHead
+
 let getTemplateByName (name: string) (energy: float) =
     let key = 
         creepTemplates.Keys
@@ -32,7 +41,6 @@ let getTemplateByName (name: string) (energy: float) =
         |> Seq.sortByDescending (fun (template, cost) -> cost)
         |> Seq.head
     creepTemplates.[key]
-
 let maxParts (energy: float, roleType: RoleType) =
     let maximizeParts template =
         let baseCost = totalCost template
@@ -50,16 +58,8 @@ let maxParts (energy: float, roleType: RoleType) =
 
     new ResizeArray<string> (parts)
 
-// TODO: put these overrides into memory so they can be set in-game.
-let attackerOverride = false
 let getNextRole lastRole =
-    // (Harvest, lastRole)
-    // (Claimer, lastRole)
-    // (Pioneer, lastRole)
-    if attackerOverride then // Check if we're overriding the next creep spawn with an attacker!
-        (Attacker, lastRole)
-    else 
-        (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
+    (roleOrder.Item(lastRole), if lastRole < (roleOrder.Length - 1) then lastRole + 1 else 0)
 
 let ifEmptyQueue queue f spawn =
     match queue with
@@ -70,16 +70,12 @@ let spawnCreep (spawn: Spawn) parts creepMemory =
     if (totalCost parts) <= spawn.room.energyAvailable then
         let result = spawn.createCreep(parts, null, box (creepMemory))
         match box result with
-        | :? string -> 
-            printfn "Spawned creep name: %s" (unbox<string> result)
-            
-        | :? int -> printfn "Failed to spawn with code %A" (box result)
+        | :? string     -> printfn "Spawned creep name: %s" (unbox<string> result)
+        | :? int        -> printfn "Failed to spawn with code %A" (box result)
         | _ -> ()
-    else 
-        ()
-        // skip
+    else ()
 
-let checkCreeps (lastResult: SpawnActionResult)  =
+let checkCreeps (lastResult: SpawnActionResult) =
     match lastResult with
     | Pass (spawn, spawnMemory) ->
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
@@ -98,17 +94,7 @@ let checkCreeps (lastResult: SpawnActionResult)  =
             Pass (spawn, spawnMemory)
     | result -> result
 
-// Find flags assigned to a given spawn who's creep counts are less than the designated count
-let findFlag spawnId = 
-    (getKeys Globals.Game.flags)
-    |> List.map (fun key -> 
-        let flag = unbox<Flag>(Globals.Game.flags?(key))
-        let memory = MemoryInFlag.get flag
-        (flag, memory))
-    |> List.filter (fun (f,m) -> m.actionSpawnId = spawnId && m.currentCreepCount < m.actionCreepCount)
-    |> List.tryHead
-
-let checkFlags (lastResult: SpawnActionResult)  =
+let checkFlags (lastResult: SpawnActionResult) =
     match lastResult with
     | Pass (spawn, spawnMemory) ->
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable

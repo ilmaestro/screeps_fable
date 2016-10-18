@@ -36,7 +36,7 @@ let private findClosestEnergyStructure pos =
 let private findClosestEnergyContainer pos = 
     let containerFilter = filter<ResourceContainer>(fun r ->
         resourceContainers.Contains(r.structureType) && resourceContainerNotFull r)
-    findClosest<Structure> Globals.FIND_STRUCTURES containerFilter pos
+    findClosest<Storage> Globals.FIND_STRUCTURES containerFilter pos
 
 let private findClosestTower pos = 
     let towerFilter = filter<Tower>(fun r ->
@@ -81,7 +81,7 @@ let upgradeController (lastresult: CreepActionResult) =
 let pickupDroppedResources (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Idle) ->
-        match findClosest<Resource> Globals.FIND_DROPPED_RESOURCES (filter<Source>(fun _ -> true)) creep.pos with
+        match findClosest<Resource> Globals.FIND_DROPPED_RESOURCES (filter<Resource>(fun resource -> resource.resourceType = Globals.RESOURCE_ENERGY)) creep.pos with
         | Some target ->
             match creep.pickup(target) with
             | r when r = Globals.OK -> Success (creep, Harvesting)
@@ -120,6 +120,15 @@ let withdrawEnergyFromContainer (lastresult: CreepActionResult) =
         | None -> Pass (creep, Idle)
     | result -> result
 
+let dropNon (resourceType: string) (lastresult: CreepActionResult) =
+    match lastresult with
+    | Pass (creep, Idle) ->
+        (getKeys creep.carry)
+        |> List.filter (fun key -> key <> resourceType)
+        |> List.iter (fun key -> creep.drop(key) |> ignore)
+        Pass (creep, Idle)
+    | result -> result
+
 let transferEnergyToStructures (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Idle) ->
@@ -134,17 +143,19 @@ let transferEnergyToStructures (lastresult: CreepActionResult) =
         | None -> Pass (creep, Idle)
     | result -> result
 
-let transferEnergyToContainers (lastresult: CreepActionResult) =
+let transferEnergyToContainers capAmount (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Idle) ->
         match findClosestEnergyContainer creep.pos with
-        | Some structure ->
-            match (creep.transfer(U3.Case3 structure, Globals.RESOURCE_ENERGY)) with
-            | r when r = Globals.OK -> Success (creep, Transferring)
-            | r when r = Globals.ERR_NOT_IN_RANGE ->
-                creep.moveTo(U2.Case2 (box structure)) |> ignore
-                Success (creep, Moving Transferring)
-            | r -> Failure r
+        | Some storage ->
+            if storage.store.[Globals.RESOURCE_ENERGY] < capAmount then
+                match (creep.transfer(U3.Case3 ((box storage) :?> Structure), Globals.RESOURCE_ENERGY)) with
+                | r when r = Globals.OK -> Success (creep, Transferring)
+                | r when r = Globals.ERR_NOT_IN_RANGE ->
+                    creep.moveTo(U2.Case2 (box storage)) |> ignore
+                    Success (creep, Moving Transferring)
+                | r -> Failure r
+            else Pass (creep, Idle)
         | None -> Pass (creep, Idle)
     | result -> result
 
@@ -296,6 +307,16 @@ let locateFlag (targetFlag: Flag) (radius: float) (lastresult: CreepActionResult
             Pass (creep, Idle)
     | result -> result
 
+let locateSpawnRoom (spawn: Spawn) (lastresult: CreepActionResult) =
+    match lastresult with
+    | Pass (creep, Idle) ->
+        if creep.room.name = spawn.pos.roomName
+        then Pass(creep, Idle)
+        else
+            match creep.moveByPath(U3.Case1 (creep.pos.findPathTo(U2.Case1 spawn.pos))) with
+            | r when r = Globals.OK -> Success(creep, Moving Attacking)
+            | r -> Failure r
+    | result -> result
 let locateRoom targetRoom (lastresult: CreepActionResult) =
     let withinBounds (x, y) =
         x < 45. && x > 1. && y > 1. && y < 45. 
