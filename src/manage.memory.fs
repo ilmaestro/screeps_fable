@@ -17,43 +17,10 @@ let private logDelete name =
 
 module MemoryInGame =
     let get() =
-        let creepCount = unbox<int> (getMemoryObject (Globals.Memory.Item("game")) "creepCount" 0)
-        let constructionQueue = unbox<ConstructionItem list> (getMemoryObject (Globals.Memory.Item("game")) "constructionQueue" [])
-        let constructionItem = unbox<ConstructionItem option> (getMemoryObject (Globals.Memory.Item("game")) "constructionItem" None)
-
-        {
-            creepCount = creepCount
-            constructionQueue = constructionQueue
-            constructionItem = constructionItem }
-
+        { creepCount = unbox<int> (getMemoryObject (Globals.Memory.Item("game")) "creepCount" 0) }
     let set (memory: GameMemory) =
         Globals.Memory?game <- memory
 
-module MemoryInSpawn =
-    let get (spawn: Spawn) =
-        { 
-            lastRoleItem = unbox<int> (getMemoryObject spawn.memory "lastRoleItem" 0)
-            lastConstructionLevel =  unbox<int> (getMemoryObject spawn.memory "lastConstructionLevel" 0)}
-
-    let set (spawn: Spawn) (memory: SpawnMemory) =
-        let {lastRoleItem = r; lastConstructionLevel = lcl} = memory
-        spawn.memory?lastRoleItem <- r
-        spawn.memory?lastConstructionLevel <- lcl
-
-    let getCreepCount (spawn: Spawn) =
-        getKeys Globals.Game.creeps
-        |> List.map (fun name -> unbox<Creep> (Globals.Game.creeps?(name)))
-        |> List.filter (fun c -> (unbox<string> (c.memory?spawnId)) = spawn.id)
-        |> List.length
-
-    [<Emit("delete Memory.spawns[$0]")>]
-    let deleteSpawnMemory name = jsNative
-    let clearDeadSpawnMems (spawnKeys: ResizeArray<string>) =
-        // check for dead spawn memories..
-        getKeys Globals.Memory.spawns
-        |> List.filter (spawnKeys.Contains >> not)
-        |> List.iter (logDelete >> deleteSpawnMemory)
-        spawnKeys
 
 module MemoryInFlag =
     let get (flag: Flag) = 
@@ -74,10 +41,11 @@ module MemoryInFlag =
 
     [<Emit("delete Memory.flags[$0]")>]
     let deleteFlagMemory name = jsNative
-    let clearDeadFlagMems (flagKeys: ResizeArray<string>) =
+    let clearDeadFlagMems (flagKeys: string list) =
         // check for dead flag memories..
+        let keys = ResizeArray<string>(flagKeys)
         getKeys Globals.Memory.flags
-        |> List.filter (flagKeys.Contains >> not)
+        |> List.filter (keys.Contains >> not)
         |> List.iter (logDelete >> deleteFlagMemory)
         flagKeys
 
@@ -117,16 +85,73 @@ module MemoryInCreep =
 
     [<Emit("delete Memory.creeps[$0]")>]
     let deleteCreepMemory name = jsNative
-    let clearDeadCreepMems (creepKeys: ResizeArray<string>) =
+    let clearDeadCreepMems (creepKeys: string list) =
         // check for dead creep memories..
+        let keys = ResizeArray<string>(creepKeys)
         getKeys Globals.Memory.creeps
-        |> List.filter (creepKeys.Contains >> not)
+        |> List.filter (keys.Contains >> not)
         |> List.iter (logDelete >> deleteCreepMemory)
         creepKeys
     
-    let setCurrentCreepCount (creepKeys: ResizeArray<string>) =
-        MemoryInGame.set({ MemoryInGame.get() with creepCount = creepKeys.Count})
+    let setCurrentCreepCount (creepKeys: string list) =
+        MemoryInGame.set({ MemoryInGame.get() with creepCount = creepKeys.Length})
         creepKeys
+
+module MemoryInSpawn =
+    let get (spawn: Spawn) =
+        { 
+            lastRoleItem = unbox<int> (getMemoryObject spawn.memory "lastRoleItem" 0)
+            lastConstructionLevel =  unbox<int> (getMemoryObject spawn.memory "lastConstructionLevel" 0)
+            spawnCreepCount = unbox<int> (getMemoryObject spawn.memory "spawnCreepCount" 0)
+            areHostileCreepsInRoom = unbox<bool> (getMemoryObject spawn.memory "areHostileCreepsInRoom" false)
+            constructionQueue = unbox<ConstructionItem list> (getMemoryObject (Globals.Memory.Item("game")) "constructionQueue" [])
+            constructionItem = unbox<ConstructionItem option> (getMemoryObject (Globals.Memory.Item("game")) "constructionItem" None)
+            }
+
+    let set (spawn: Spawn) (memory: SpawnMemory) =
+        let {lastRoleItem = r; lastConstructionLevel = lcl} = memory
+        spawn.memory?lastRoleItem <- memory.lastRoleItem
+        spawn.memory?lastConstructionLevel <- memory.lastConstructionLevel
+        spawn.memory?spawnCreepCount <- memory.spawnCreepCount
+        spawn.memory?areHostileCreepsInRoom <- memory.areHostileCreepsInRoom
+        spawn.memory?constructionQueue <- memory.constructionQueue
+        spawn.memory?constructionItem <- memory.constructionItem
+
+    // Count the creeps assigned to a spawn that are NOT assigned to flags
+    let getCreepCount (spawn: Spawn) =
+        getKeys Globals.Game.creeps
+        |> List.map (fun name -> unbox<Creep> (Globals.Game.creeps?(name)))
+        |> List.filter (fun c ->
+            let memory = MemoryInCreep.get c
+            let noFlag = match memory.actionFlag with | Some flag -> false | None -> true 
+            memory.spawnId = spawn.id && noFlag)
+        |> List.length
+
+    let getRoomFlags (spawn: Spawn) =
+        // Find if there any hostile creeps with attack parts or ranged attacks
+        let hostileCreepsInRoom = spawn.room.find(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> c.getActiveBodyparts(Globals.ATTACK) = 0.))
+        (hostileCreepsInRoom.Count > 0)
+
+
+    [<Emit("delete Memory.spawns[$0]")>]
+    let deleteSpawnMemory name = jsNative
+    let clearDeadSpawnMems (spawnKeys: string list) =
+        let keys = ResizeArray<string>(spawnKeys)
+        // check for dead spawn memories..
+        getKeys Globals.Memory.spawns
+        |> List.filter (keys.Contains >> not)
+        |> List.iter (logDelete >> deleteSpawnMemory)
+        spawnKeys
+    
+    let setSpawnGlobals (spawnKeys: string list) =
+        let setGlobals (spawn: Spawn) =
+            let roomFlags = getRoomFlags spawn
+            let creepCount = getCreepCount spawn
+            set spawn ({ get(spawn) with areHostileCreepsInRoom = roomFlags; spawnCreepCount = creepCount; })
+    
+        spawnKeys
+        |> List.map (fun key -> unbox<Spawn>(Globals.Game.spawns?(key)))
+        |> List.iter setGlobals
 
 module ConstructionMemory =
     (*
@@ -135,32 +160,39 @@ module ConstructionMemory =
         2. Add items
         3. Get next item 
     *)
-    let create (items: ConstructionItem list) =
-        let gameMemory = MemoryInGame.get()
-        MemoryInGame.set({ gameMemory with constructionItem = Some items.Head; constructionQueue = items.Tail })
-
-    let enqueue (item: ConstructionItem) =
-        let gameMemory = MemoryInGame.get()
-        MemoryInGame.set({ gameMemory with constructionQueue = item :: gameMemory.constructionQueue })
-
-    let dequeue () =
-        let gameMemory = MemoryInGame.get()
-        match gameMemory.constructionQueue with 
+    let create (spawn: Spawn) (items: ConstructionItem list) =
+        MemoryInSpawn.set spawn ({ MemoryInSpawn.get(spawn: Spawn) with constructionItem = Some items.Head; constructionQueue = items.Tail })
+    let enqueue (spawn: Spawn) (item: ConstructionItem) =
+        let spawnMemory = MemoryInSpawn.get(spawn: Spawn)
+        MemoryInSpawn.set spawn ({ spawnMemory with constructionQueue = item :: spawnMemory.constructionQueue })
+    let dequeue (spawn: Spawn) =
+        let spawnMemory = MemoryInSpawn.get(spawn: Spawn)
+        match spawnMemory.constructionQueue with 
         | [] -> 
-            MemoryInGame.set({ gameMemory with constructionItem = None })
+            MemoryInSpawn.set spawn ({ spawnMemory with constructionItem = None })
             None
         | hd :: tail ->
-            MemoryInGame.set({ gameMemory with constructionItem = Some hd; constructionQueue = tail })
+            MemoryInSpawn.set spawn ({ spawnMemory with constructionItem = Some hd; constructionQueue = tail })
             Some hd
 
 module GameTick =
-    open MemoryInCreep
-    open MemoryInSpawn
-    open MemoryInFlag
+    let updateGlobals (spawnKeys, creepKeys, flagKeys) =
+        MemoryInCreep.setCurrentCreepCount creepKeys |> ignore
+        MemoryInSpawn.setSpawnGlobals spawnKeys
+        (spawnKeys, creepKeys, flagKeys)
+    let clearUnusedMemories (spawnKeys, creepKeys, flagKeys) =
+        MemoryInSpawn.clearDeadSpawnMems spawnKeys |> ignore
+        MemoryInCreep.clearDeadCreepMems creepKeys |> ignore
+        MemoryInFlag.clearDeadFlagMems flagKeys |> ignore
+        (spawnKeys, creepKeys, flagKeys)
     let checkMemory () =
-        (new ResizeArray<string> (getKeys Globals.Game.creeps))
-        |> clearDeadCreepMems
-        |> setCurrentCreepCount
-        |> ignore
-        clearDeadSpawnMems (new ResizeArray<string> (getKeys Globals.Game.spawns)) |> ignore
-        clearDeadFlagMems (new ResizeArray<string> (getKeys Globals.Game.flags)) |> ignore
+        let creepKeys = getKeys Globals.Game.creeps
+        let spawnKeys = getKeys Globals.Game.spawns
+        let flagKeys = getKeys Globals.Game.flags
+
+        (spawnKeys, creepKeys, flagKeys)
+        |> updateGlobals
+        |> clearUnusedMemories
+        |> ignore 
+        
+        

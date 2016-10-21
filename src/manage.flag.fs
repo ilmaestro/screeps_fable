@@ -14,6 +14,7 @@ Goals:
         * ResourceFlag_Harvest_1_2_BorkTest -> send one harvester from BorkTest to this location within 2 squares 
         * GuardHereWithOneGuard_Guard_1_2_BorkTest -> go guard!
         * Resurrect_Pioneer_1_20_SonOfTorgo -> help to pioneer within a 20 square radius
+        * KeepTowersFueled_Transport_1_4_BorkTest -> go keep the towers fueled up by grabbing energy from containers and refueling
     - params:
         - role
         - count

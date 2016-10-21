@@ -77,7 +77,4 @@ match unbox Globals.Memory?game with
 | Some g -> ()
 | None ->
     Manage.Memory.MemoryInGame.set(
-        { 
-            creepCount = 0
-            constructionQueue = []
-            constructionItem = None })
+        {  creepCount = 0 })

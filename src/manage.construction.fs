@@ -35,9 +35,8 @@ let constructionItemStatus item =
 let pathToTuple (path: PathStep seq) = 
     path |> Seq.map (fun res -> (res.x, res.y))
 
-let queueConstruction (room: Room) (structure: string) (path : (float * float) seq) =
-    path |> Seq.iter (fun (x,y) -> Memory.ConstructionMemory.enqueue { position = {x = x; y = y; roomName = room.name}; structureType = structure;})
-
+let queueConstruction (spawn: Spawn) (structure: string) (path : (float * float) seq) =
+    path |> Seq.iter (fun (x,y) -> Memory.ConstructionMemory.enqueue spawn { position = {x = x; y = y; roomName = spawn.room.name}; structureType = structure;})
 
 let adjacentPositions (x, y) =
     [
@@ -78,11 +77,11 @@ module Projects =
                     (defaultToString res.terrain) = "plain" || (defaultToString res.terrain) = "swamp"
                 ))
 
-    let createRoadsAround (pos: RoomPosition) =
+    let createRoadsAround (spawn: Spawn) (pos: RoomPosition) =
         let room = unbox<Room>(Globals.Game.rooms?(pos.roomName))
         adjacentPositions (pos.x, pos.y)
         |> Seq.filter (isPositionAvailable room)     
-        |> queueConstruction room Globals.STRUCTURE_ROAD
+        |> queueConstruction spawn Globals.STRUCTURE_ROAD
 
     let getSourcePositionsInRoom (room: Room) =
         room.find<Source>(Globals.FIND_SOURCES_ACTIVE)
@@ -91,7 +90,7 @@ module Projects =
     /// Goal 1: create walls within 1 square of all 4 edges - DONE
     /// Goal 2: create walls on the outer edges that block off exits
     /// Goal 3: leave gaps for Ramparts that allow my creeps to pass through
-    let createOuterWalls (room: Room) =
+    let createOuterWalls (spawn: Spawn) (room: Room) =
         let wallPositions = 
             unbox<ResizeArray<LookAtResultWithPos>> (box (room.lookAtArea(0.,0.,49.,49., true)))
             |> Seq.filter (fun res -> 
@@ -107,9 +106,9 @@ module Projects =
                 ))
             |> Seq.map (fun res -> (res.x, res.y))
         //printfn "proposed positions: %A" wallPositions
-        wallPositions |> queueConstruction room Globals.STRUCTURE_WALL
+        wallPositions |> queueConstruction spawn Globals.STRUCTURE_WALL
 
-    let createRoadsFromPosToSources (pos: RoomPosition) =
+    let createRoadsFromPosToSources (spawn: Spawn) (pos: RoomPosition) =
         let room = unbox<Room>(Globals.Game.rooms?(pos.roomName))
         let findPathOpts = 
             createObj [
@@ -120,7 +119,7 @@ module Projects =
         |> Seq.collect (fun spos -> pos.findPathTo(U2.Case1 spos, findPathOpts))
         |> pathToTuple
         |> Seq.filter (isPositionAvailable room)
-        |> queueConstruction room Globals.STRUCTURE_ROAD
+        |> queueConstruction spawn Globals.STRUCTURE_ROAD
 
     /// Find places to build x extensions
     /// Optimal: along sides of roads -- get path to sources, look for places to build extensions
@@ -165,7 +164,7 @@ module Projects =
             printfn "extension list: %A" extensionList
             extensionList)
         |> Seq.take x
-        |> (queueConstruction spawn.room Globals.STRUCTURE_EXTENSION)
+        |> (queueConstruction spawn Globals.STRUCTURE_EXTENSION)
 
     /// build storage containers
 
@@ -176,14 +175,14 @@ module Projects =
 module GameTick =
 
     let projectList = [
-        (fun (spawn: Spawn) _ -> Projects.createRoadsFromPosToSources spawn.pos; true);
-        (fun (spawn: Spawn) _ -> Projects.createRoadsAround spawn.pos; true);
-        (fun (spawn: Spawn) _ -> Projects.getSourcePositionsInRoom spawn.room |> Seq.iter Projects.createRoadsAround; true);
+        (fun (spawn: Spawn) _ -> Projects.createRoadsFromPosToSources spawn spawn.pos; true);
+        (fun (spawn: Spawn) _ -> Projects.createRoadsAround spawn spawn.pos; true);
+        (fun (spawn: Spawn) _ -> Projects.getSourcePositionsInRoom spawn.room |> Seq.iter (Projects.createRoadsAround spawn); true);
         (fun (spawn: Spawn) level -> if level >= 2. then Projects.createExtensions spawn 5; true else false);
-        (fun (spawn: Spawn) _ -> Projects.createRoadsFromPosToSources spawn.room.controller.pos; true);
+        (fun (spawn: Spawn) _ -> Projects.createRoadsFromPosToSources spawn spawn.room.controller.pos; true);
         (fun (spawn: Spawn) level -> if level >= 3. then Projects.createExtensions spawn 5; true else false);
         // TODO: build tower
-        (fun (spawn: Spawn) _ -> Projects.createOuterWalls(spawn.room); true);
+        (fun (spawn: Spawn) _ -> Projects.createOuterWalls spawn spawn.room; true);
         (fun (spawn: Spawn) level -> if level >= 4. then Projects.createExtensions spawn 5; true else false);
         (fun (spawn: Spawn) level -> if level >= 5. then Projects.createExtensions spawn 5; true else false);
         (fun (spawn: Spawn) level -> if level >= 6. then Projects.createExtensions spawn 5; true else false);
@@ -200,25 +199,26 @@ module GameTick =
             | true -> MemoryInSpawn.set spawn { memory with lastConstructionLevel = constructionLevel + 1 }
             | false -> ()
         spawn
-    let rec handleConstruction item =
+    
+    let rec handleConstruction (spawn: Spawn) item =
         match constructionItemStatus item with
         | Unconstructed ->
             let room = unbox<Room>(Globals.Game.rooms?(item.position.roomName))
             room.createConstructionSite(item.position.x, item.position.y, item.structureType) |> printfn "%s at %A result: %f" item.structureType item.position
         | Completed -> 
-            match Memory.ConstructionMemory.dequeue() with
-            | Some item -> handleConstruction item
+            match Memory.ConstructionMemory.dequeue(spawn) with
+            | Some item -> handleConstruction spawn item
             | None -> () 
         | Inprogress -> ()
     
-    let run (gameMemory: GameMemory) =
+    let run (spawn: Spawn) (spawnMemory: SpawnMemory) =
         // check for items in the queue
-        match gameMemory.constructionItem with
+        match spawnMemory.constructionItem with
         | Some item ->
             // check if it needs a construction site or if it has already been built
-            handleConstruction item
+            handleConstruction spawn item
         | None ->
             // check if there's anything in the queue
-            match Memory.ConstructionMemory.dequeue() with
-            | Some item -> handleConstruction item
+            match Memory.ConstructionMemory.dequeue(spawn) with
+            | Some item -> handleConstruction spawn item
             | None -> () 

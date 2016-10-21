@@ -12,9 +12,14 @@ open Action.Helpers
 *)
 
 let run(creep: Creep, memory: CreepMemory) =
-    let ifEmergency condition action lastresult =
-        if condition() then (action lastresult)
-        else lastresult
+    let homeSpawn = unbox<Spawn> (Globals.Game.getObjectById(memory.spawnId))
+    let spawnMemory = MemoryInSpawn.get homeSpawn
+    let hostilCreepsInRoom = 
+        let hostiles = creep.room.find(Globals.FIND_HOSTILE_CREEPS, filter<Creep>(fun c -> c.getActiveBodyparts(Globals.ATTACK) = 0.))
+        hostiles.Count > 0
+    
+    let isEmergency = 
+        spawnMemory.areHostileCreepsInRoom || hostilCreepsInRoom
 
     let goToFlagIfInstructed lastresult =
         match memory.actionFlag with
@@ -28,18 +33,19 @@ let run(creep: Creep, memory: CreepMemory) =
 
     let harvest() =
         beginAction creep
-        |> goToFlagIfInstructed
-        |> dropNon Globals.RESOURCE_ENERGY
         |> pickupDroppedResources
-        // |> ifEmergency (fun _ -> true) withdrawEnergyFromContainer
-        |> harvestEnergySources
+        |> dropNon Globals.RESOURCE_ENERGY
+        |> doUnless isEmergency goToFlagIfInstructed
+        |> doUnless isEmergency harvestEnergySources
+        |> doWhen isEmergency (locateSpawnRoom homeSpawn)
+        |> doWhen isEmergency withdrawEnergyFromContainer
         |> endAction memory
 
     let transfer() = 
         beginAction creep
         |> locateSpawnRoom homeSpawn
         |> transferEnergyToStructures
-        |> transferEnergyToContainers 20000.
+        |> transferEnergyToContainers (Globals.RESOURCE_ENERGY, 20000.)
         |> upgradeController
         |> endAction memory
 

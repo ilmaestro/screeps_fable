@@ -86,13 +86,15 @@ type CreepMemory = {
 
 type GameMemory = {
     creepCount: int;
-    constructionQueue: ConstructionItem list;
-    constructionItem: ConstructionItem option;
 }
 
 type SpawnMemory = {
     lastRoleItem: int;
     lastConstructionLevel: int;
+    spawnCreepCount: int;
+    areHostileCreepsInRoom: bool;
+    constructionQueue: ConstructionItem list;
+    constructionItem: ConstructionItem option;
 }
 
 type FlagMemory = {
@@ -108,6 +110,7 @@ type ActionHandler<'T, 'U> = ActionResult<'T,'U> -> ActionResult<'T,'U>
 type CreepActionResult = ActionResult<Creep * CreepAction, float>
 type CreepActionHandler = ActionHandler<Creep * CreepAction, float>
 type SpawnActionResult = ActionResult<Spawn * SpawnMemory, float>
+type TowerActionResult = ActionResult<Tower, float>
 
 let partCosts = 
     dict [

@@ -13,7 +13,7 @@ open Manage.Memory
     - don't spawn repair creeps until there are things to repair.. 
     - level 1 vs. level2 etc... creeps?
 *)
-let maxCreepsAllowed = 12
+let coreCreepCountTarget = 8
 
 let beginSpawnAction (spawn: Spawn, spawnMemory: SpawnMemory ): SpawnActionResult = 
     Pass (spawn, spawnMemory)
@@ -81,7 +81,7 @@ let checkCreeps (lastResult: SpawnActionResult) =
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
         let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
 
-        if (maxEnergy && spawnCreepCount < maxCreepsAllowed) || spawnCreepCount = 0 then
+        if (maxEnergy && spawnCreepCount < coreCreepCountTarget) || spawnCreepCount = 0 then
             let (nextRole, nextRoleItem) = 
                 if spawnCreepCount = 0 then (Harvest, spawnMemory.lastRoleItem)
                 else getNextRole spawnMemory.lastRoleItem
@@ -99,7 +99,7 @@ let checkFlags (lastResult: SpawnActionResult) =
     | Pass (spawn, spawnMemory) ->
         let maxEnergy = spawn.room.energyAvailable = spawn.room.energyCapacityAvailable
         let spawnCreepCount = MemoryInSpawn.getCreepCount spawn
-        let halfCreepCount = maxCreepsAllowed / 2
+        let halfCreepCount = coreCreepCountTarget / 2
         // only allow flags if we're at half our max creeps
         if maxEnergy && spawnCreepCount > halfCreepCount then
             // get flags for this spawn that need creeps
@@ -115,9 +115,8 @@ let checkFlags (lastResult: SpawnActionResult) =
     | result -> result
 
 let run (spawn: Spawn, memory: SpawnMemory ) =
+    // ifEmptyQueue (MemoryInSpawn.get(spawn).constructionQueue) (Manage.Construction.GameTick.checkConstruction memory) |> ignore
     beginSpawnAction (spawn, memory)
     |> checkFlags
     |> checkCreeps
-    //TODO: Move memory to Spawn... 
-    //|> ifEmptyQueue (MemoryInGame.get().constructionQueue) (Manage.Construction.GameTick.checkConstruction memory)
     |> endSpawnAction

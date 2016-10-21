@@ -13,7 +13,7 @@ let private energyStructures = new ResizeArray<string>[|Globals.STRUCTURE_SPAWN;
 let private resourceContainers = new ResizeArray<string>[|Globals.STRUCTURE_CONTAINER; Globals.STRUCTURE_STORAGE; |]
 
 [<Emit("_.sum($0.store) < $0.storeCapacity")>]
-let private resourceContainerNotFull (r: ResourceContainer): bool = jsNative
+let private resourceContainerNotFull (r: StructureStorage): bool = jsNative
 
 let private resourceContainerHasSome (r: StructureContainer) resourceType =
     let resource =
@@ -33,9 +33,11 @@ let private findClosestEnergyStructure pos =
         energyStructures.Contains(s.structureType) && s.energy < s.energyCapacity)
     findClosest<Structure> Globals.FIND_STRUCTURES structureFilter pos
 
-let private findClosestEnergyContainer pos = 
-    let containerFilter = filter<ResourceContainer>(fun r ->
-        resourceContainers.Contains(r.structureType) && resourceContainerNotFull r)
+let private findClosestEnergyContainer pos (resourceType: string, capAmount: float) = 
+    let containerFilter = filter<StructureStorage>(fun r ->
+        resourceContainers.Contains(r.structureType) 
+        && resourceContainerNotFull r
+        && r.store.Item(resourceType) < capAmount)
     findClosest<Storage> Globals.FIND_STRUCTURES containerFilter pos
 
 let private findClosestTower pos = 
@@ -51,7 +53,15 @@ let private findClosestContainerWithSome pos resourceType =
 (*
     Public Methods
 *)
+let doUnless condition action result =
+    if not condition then
+        action result
+    else result
 
+let doWhen condition action result =
+    if condition then
+        action result
+    else result
 let beginAction (creep: Creep): CreepActionResult =
     //printfn "%s beginning action.."
     Pass (creep, Idle)
@@ -146,16 +156,14 @@ let transferEnergyToStructures (lastresult: CreepActionResult) =
 let transferEnergyToContainers capAmount (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Idle) ->
-        match findClosestEnergyContainer creep.pos with
+        match findClosestEnergyContainer creep.pos capAmount with
         | Some storage ->
-            if storage.store.[Globals.RESOURCE_ENERGY] < capAmount then
-                match (creep.transfer(U3.Case3 ((box storage) :?> Structure), Globals.RESOURCE_ENERGY)) with
-                | r when r = Globals.OK -> Success (creep, Transferring)
-                | r when r = Globals.ERR_NOT_IN_RANGE ->
-                    creep.moveTo(U2.Case2 (box storage)) |> ignore
-                    Success (creep, Moving Transferring)
-                | r -> Failure r
-            else Pass (creep, Idle)
+            match (creep.transfer(U3.Case3 ((box storage) :?> Structure), Globals.RESOURCE_ENERGY)) with
+            | r when r = Globals.OK -> Success (creep, Transferring)
+            | r when r = Globals.ERR_NOT_IN_RANGE ->
+                creep.moveTo(U2.Case2 (box storage)) |> ignore
+                Success (creep, Moving Transferring)
+            | r -> Failure r
         | None -> Pass (creep, Idle)
     | result -> result
 
@@ -187,7 +195,6 @@ let build (lastresult: CreepActionResult) =
         | None -> Pass (creep, Idle)
     | result -> result
 
-(* TODO: fix this so its a valid CreepAction function *)
 let quickRepair (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Building pos) ->
@@ -226,7 +233,7 @@ let repairStructures (lastresult: CreepActionResult) =
 let repairWalls (lastresult: CreepActionResult) =
     match lastresult with
     | Pass (creep, Idle) ->
-        let controllerLevel = creep.room.controller.level
+        let controllerLevel = match creep.room.controller with | null -> 5000. | ctrlr -> ctrlr.level
         let minHits = 5000. * Math.Pow(controllerLevel, 2.)
         match unbox (creep.pos.findClosestByPath<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < minHits && s.structureType = Globals.STRUCTURE_WALL))) with
         | Some s ->
