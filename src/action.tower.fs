@@ -37,9 +37,10 @@ let rangedHeal (lastResult: TowerActionResult) =
     | result -> result
 
 let rangedRepair (lastResult: TowerActionResult) =
+    let hitCap = 250000.
     match lastResult with
     | Pass tower ->
-        match unbox (tower.pos.findClosestByRange<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < s.hitsMax && s.structureType <> Globals.STRUCTURE_WALL))) with
+        match unbox (tower.pos.findClosestByRange<Structure>(Globals.FIND_STRUCTURES, filter<Structure>(fun s -> s.hits < s.hitsMax && s.hits < hitCap && s.structureType <> Globals.STRUCTURE_WALL))) with
         | Some structure ->
             match tower.repair(U2.Case2 structure) with
             | r when r = Globals.OK -> Success tower

@@ -19,7 +19,6 @@ let run(creep: Creep, memory: CreepMemory) =
     let harvest() =
         beginAction creep
         |> pickupDroppedResources
-        |> dropNon Globals.RESOURCE_ENERGY
         |> doUnless isEmergency harvestEnergySources
         |> doWhen isEmergency withdrawEnergyFromContainer
         |> endAction memory

@@ -61,6 +61,7 @@
     <Compile Include="src\action.claim.fs" />
     <Compile Include="src\action.pioneer.fs" />
     <Compile Include="src\action.transport.fs" />
+    <Compile Include="src\action.miner.fs" />
     <Compile Include="src\manage.flag.fs" />
     <Compile Include="src\main.fsx" />
     <None Include="App.config" />

@@ -9,17 +9,19 @@ open Manage.Memory
 (* 
 Goals:
     - flags used to dispatch certain types of creeps to specific locations
-    - quick create a flag using name:
+    - quick create a flag {some name}_{RoleType}_{NumCreeps}_{Radius}_{SpawnName}_{EnergyMax}
         * ActionFlag_Attacker_2_5_SonOfTorgo -> send two attackers from SonOfTorgo to this location within 5 squares
         * ResourceFlag_Harvest_1_2_BorkTest -> send one harvester from BorkTest to this location within 2 squares 
         * GuardHereWithOneGuard_Guard_1_2_BorkTest -> go guard!
         * Resurrect_Pioneer_1_20_SonOfTorgo -> help to pioneer within a 20 square radius
         * KeepTowersFueled_Transport_1_4_BorkTest -> go keep the towers fueled up by grabbing energy from containers and refueling
+        * KeepMiningSource_Miner_1_2_SonOfTorgo
     - params:
         - role
         - count
         - radius
-        - spawnId
+        - spawnName
+        - energyMax
     - spawning: 
         - the selected spawn should prioritize based on flags
         - needs to know the count of creeps assigned to a flag

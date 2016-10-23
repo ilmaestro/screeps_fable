@@ -29,12 +29,9 @@ let run(creep: Creep, memory: CreepMemory) =
             locateFlag flag flagMem.actionRadius lastresult
         | None -> lastresult
 
-    let homeSpawn = unbox<Spawn>(Globals.Game.getObjectById(memory.spawnId))
-
     let harvest() =
         beginAction creep
         |> pickupDroppedResources
-        |> dropNon Globals.RESOURCE_ENERGY
         |> doUnless isEmergency goToFlagIfInstructed
         |> doUnless isEmergency harvestEnergySources
         |> doWhen isEmergency (locateSpawnRoom homeSpawn)
@@ -46,6 +43,7 @@ let run(creep: Creep, memory: CreepMemory) =
         |> locateSpawnRoom homeSpawn
         |> transferEnergyToStructures
         |> transferEnergyToContainers (Globals.RESOURCE_ENERGY, 20000.)
+        |> transferEnergyToTowers
         |> upgradeController
         |> endAction memory
 

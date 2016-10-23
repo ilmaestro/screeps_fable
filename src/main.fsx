@@ -15,6 +15,7 @@
 #load "./action.claim.fs"
 #load "./action.pioneer.fs"
 #load "./action.transport.fs"
+#load "./action.miner.fs"
 #load "./action.tower.fs"
 
 open System
@@ -41,6 +42,7 @@ let creepDispatcher name =
             | Claimer -> Action.Claim.run
             | Pioneer -> Action.Pioneer.run
             | Transport -> Action.Transport.run
+            | Miner -> Action.Miner.run
             | NoRole -> ignore
         // printfn "dispatching %s to %A" creep.name memory.role
         action(creep, memory)

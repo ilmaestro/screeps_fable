@@ -54,6 +54,7 @@ let maxParts (energy: float, roleType: RoleType) =
         | Attacker ->   maximizeParts (getTemplateByName "attacker" energy)
         | Claimer ->    (getTemplateByName "claimer" energy)
         | Transport ->  maximizeParts (getTemplateByName "transport" energy)
+        | Miner ->      maximizeParts (getTemplateByName "miner" energy)
         | _ ->          maximizeParts (getTemplateByName "worker" energy)
 
     new ResizeArray<string> (parts)

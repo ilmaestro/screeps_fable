@@ -42,6 +42,7 @@ type RoleType =
     | Claimer
     | Pioneer
     | Transport
+    | Miner
     | NoRole
 
 type CreepAction =
@@ -126,6 +127,8 @@ let partCosts =
 let totalCost parts =
     parts |> Seq.map (fun p -> partCosts.[p]) |> Seq.sum
 
+// TODO: stop using roleOrder and switch over to simply having a base set of harvesting/transferring creeps
+//      use flags for : upgrading, building and repairing?
 //let roleOrder = [Harvest; Harvest; Build; Build;]
 let roleOrder = [Harvest; Build; Harvest; Upgrade; Repair;]
 
@@ -135,6 +138,9 @@ let creepTemplates =
         ("worker", 250.), seq { 
             yield Globals.WORK; yield Globals.CARRY; 
             yield Globals.MOVE; yield Globals.MOVE; };
+        ("miner", 250.), seq {
+            yield Globals.WORK; yield Globals.WORK;
+            yield Globals.MOVE; };
         ("transport", 150.), seq { 
             yield Globals.CARRY; 
             yield Globals.MOVE; yield Globals.MOVE; };
@@ -180,6 +186,7 @@ let roleFromString roleName =
     | "Claimer" -> Some Claimer
     | "Pioneer" -> Some Pioneer
     | "Transport" -> Some Transport
+    | "Miner" -> Some Miner
     | "NoRole" -> Some NoRole
     | _ -> None
 

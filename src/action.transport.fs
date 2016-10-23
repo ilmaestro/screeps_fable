@@ -19,6 +19,7 @@ let run(creep: Creep, memory: CreepMemory) =
     let transfer() = 
         beginAction creep
         |> transferEnergyToTowers
+        |> transferEnergyToContainers (Globals.RESOURCE_ENERGY, 1000000.)
         |> endAction memory
 
     match ((creepEnergy creep), memory.lastAction) with
