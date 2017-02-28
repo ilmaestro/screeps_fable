@@ -1,9 +1,9 @@
 {
     "module": "commonjs",
-    "outDir": "out",
+    "rollup": {"dest":"./out/main.js"},
     "sourceMaps": false,
     "projFile": "./Screeps.fsproj",
     "engines": {
-        "fable": "0.6.7"
+        "fable": "0.7.28"
     }
 }

@@ -13,13 +13,12 @@
     "clean:deploy": "rm -rfv /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable/*",
     "compile": "fable",
     "bablify": "babel out/src --out-file out/main.js",
-    "deploy:scripts": "cp -R ./out/src/* /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable",
-    "start": "npm run clean:out && npm run compile && npm run clean:deploy && npm run deploy:fable && npm run deploy:scripts",
-    "deploy:fable": "cp ./node_modules/fable-core/fable-core.min.js /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable/fable-core.js"
+    "deploy:script": "cp ./out/main.js /Users/rkilkenny/Library/Application\\ Support/Screeps/scripts/screeps.com/fable",
+    "start": "npm run clean:out && npm run compile && npm run clean:deploy && npm run deploy:script"
   },
   "dependencies": {
     "fable": "^1.0.1",
-    "fable-core": "^0.6.7"
+    "fable-core": "^0.7.28"
   },
   "devDependencies": {
     "typings": "^1.4.0"
